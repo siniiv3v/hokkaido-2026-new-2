@@ -496,7 +496,7 @@
 
     createApp({
         setup() {
-            // Tabs
+             // --- State ---
             const currentTab = ref('planning');
             const tabs = [
                 { id: 'planning', name: '準備', icon: 'fa-solid fa-bag-shopping' },
@@ -510,6 +510,7 @@
             // Data
             const members = ref([{name:'我', avatar:''}]);
             const newMemberName = ref('');
+
             
             const planType = ref('todo');
             const todoList = ref([{text:'辦簽證', done:false}, {text:'買網卡', done:false}]);
@@ -520,10 +521,16 @@
             
             const expenses = ref([]);
 
+            const exchangeRate = ref(0.052);
+            const exchangeInput = ref(1000);
+            const flights = ref([]);
+            const hotels = ref([]);
+            const shoppingList = ref([]);
+            const expenses = ref([]);
+
             // Forms & Modals
             const showShopModal = ref(false);
-            const shopForm = reactive({name:'', price:'', image:''});
-            
+            const shopForm = reactive({name:'', price:'', image:''});        
             const showExpModal = ref(false);
             const expForm = reactive({amount:'', title:'', payer:'我', method:'cash', isPublic:true, category:'food'});
             
@@ -554,6 +561,13 @@
                 }));
             }, { deep: true });
 
+            // Info Logic
+            const addFlight = () => flights.value.push({ type: '回程', depCode: 'CTS', arrCode: 'HKG', depTime: '16:00', arrTime: '20:30', duration: '5h30m', number: 'CX581' });
+            const deleteFlight = (idx) => flights.value.splice(idx, 1);
+            
+            const addHotel = () => hotels.value.push({ name: '新住宿', address: '地址', price: 0, checkIn: '15:00', checkOut: '11:00' });
+            const deleteHotel = (idx) => hotels.value.splice(idx, 1);
+            
             // Member Logic
             const addMember = () => {
                 if(newMemberName.value) {
@@ -627,189 +641,6 @@
                 { date: '2025-01-25', events: [] }
             ]);
 
-            const exchangeRate = ref(0.052);
-            const exchangeInput = ref(1000);
-            const flights = ref([]);
-            const hotels = ref([]);
-            const shoppingList = ref([]);
-            const expenses = ref([]);
-
-            const showEventModal = ref(false);
-            const showShoppingModal = ref(false);
-            const showExpenseModal = ref(false);
-            const isEditing = ref(false);
-            const currentEditId = ref(null);
-
-            const eventForm = reactive({ name: '', time: '10:00', category: 'spot', ticket: '', note: '', nextTravelTime: '15 min' });
-            const shoppingForm = reactive({ name: '', price: '', image: null });
-            const expenseForm = reactive({ category: 'food', name: '', amount: '', method: 'cash', isPublic: false });
-
-            // --- Methods ---
-
-            onMounted(() => {
-                const saved = localStorage.getItem('hokkaidoApp_v2_muji');
-                if (saved) {
-                    const data = JSON.parse(saved);
-                    itineraryData.value = data.itineraryData || itineraryData.value;
-                    shoppingList.value = data.shoppingList || [];
-                    expenses.value = data.expenses || [];
-                    flights.value = data.flights || [];
-                    hotels.value = data.hotels || [];
-                }
-                
-                // Demo Data if empty
-                if(flights.value.length === 0) {
-                     flights.value.push({ type: '去程', depCode: 'HKG', arrCode: 'CTS', depTime: '09:00', arrTime: '14:30', duration: '5h30m', number: 'CX580' });
-                }
-            });
-
-            watch([itineraryData, shoppingList, expenses, flights, hotels], () => {
-                const data = {
-                    itineraryData: itineraryData.value,
-                    shoppingList: shoppingList.value,
-                    expenses: expenses.value,
-                    flights: flights.value,
-                    hotels: hotels.value
-                };
-                localStorage.setItem('hokkaidoApp_v2_muji', JSON.stringify(data));
-            }, { deep: true });
-
-            const getDayOfWeek = (dateStr) => {
-                const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-                return days[new Date(dateStr).getDay()];
-            };
-            const getDayDate = (dateStr) => {
-                const d = new Date(dateStr);
-                return `${d.getDate()}/${d.getMonth() + 1}`;
-            };
-            const openMap = (query) => {
-                window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query + ' 北海道')}`, '_blank');
-            };
-
-            const currentDayEvents = computed(() => itineraryData.value[currentDayIndex.value].events);
-            
-            const addDay = () => {
-                const lastDate = new Date(itineraryData.value[itineraryData.value.length - 1].date);
-                lastDate.setDate(lastDate.getDate() + 1);
-                itineraryData.value.push({
-                    date: lastDate.toISOString().split('T')[0],
-                    events: []
-                });
-            };
-
-            const openEventModal = () => {
-                isEditing.value = false;
-                Object.assign(eventForm, { name: '', time: '10:00', category: 'spot', ticket: '', note: '', nextTravelTime: '15 min' });
-                showEventModal.value = true;
-            };
-
-            const editEvent = (event) => {
-                isEditing.value = true;
-                currentEditId.value = event.id;
-                Object.assign(eventForm, event);
-                showEventModal.value = true;
-            };
-            
-            const closeEventModal = () => showEventModal.value = false;
-
-            const saveEvent = () => {
-                if (!eventForm.name) return;
-                const events = itineraryData.value[currentDayIndex.value].events;
-                
-                if (isEditing.value) {
-                    const idx = events.findIndex(e => e.id === currentEditId.value);
-                    if (idx !== -1) events[idx] = { ...events[idx], ...eventForm };
-                } else {
-                    events.push({ ...eventForm, id: Date.now() });
-                }
-                events.sort((a, b) => a.time.localeCompare(b.time));
-                showEventModal.value = false;
-            };
-
-            const confirmDeleteEvent = () => {
-                if(confirm('刪除此行程？')) {
-                    const events = itineraryData.value[currentDayIndex.value].events;
-                    const idx = events.findIndex(e => e.id === currentEditId.value);
-                    events.splice(idx, 1);
-                    showEventModal.value = false;
-                }
-            };
-
-            const moveEvent = (index, direction) => {
-                const events = itineraryData.value[currentDayIndex.value].events;
-                const temp = events[index];
-                events[index] = events[index + direction];
-                events[index + direction] = temp;
-            };
-
-            const translateCat = (cat) => {
-                const map = { spot:'景點', food:'美食', hotel:'住宿', shopping:'購物', transport:'交通', other:'其他' };
-                return map[cat] || cat;
-            }
-            
-            // Info Logic
-            const addFlight = () => flights.value.push({ type: '回程', depCode: 'CTS', arrCode: 'HKG', depTime: '16:00', arrTime: '20:30', duration: '5h30m', number: 'CX581' });
-            const deleteFlight = (idx) => flights.value.splice(idx, 1);
-            
-            const addHotel = () => hotels.value.push({ name: '新住宿', address: '地址', price: 0, checkIn: '15:00', checkOut: '11:00' });
-            const deleteHotel = (idx) => hotels.value.splice(idx, 1);
-
-            // Shopping Logic
-            const openShoppingModal = () => {
-                Object.assign(shoppingForm, { name: '', price: '', image: null });
-                showShoppingModal.value = true;
-            };
-            const handleImageUpload = (e) => {
-                const file = e.target.files[0];
-                if (file) {
-                    const reader = new FileReader();
-                    reader.onload = (e) => shoppingForm.image = e.target.result;
-                    reader.readAsDataURL(file);
-                }
-            };
-            const saveShoppingItem = () => {
-                if(!shoppingForm.name) return;
-                shoppingList.value.push({ ...shoppingForm });
-                showShoppingModal.value = false;
-            };
-            const deleteShoppingItem = (idx) => shoppingList.value.splice(idx, 1);
-
-            // Expense Logic
-            const openExpenseModal = () => {
-                Object.assign(expenseForm, { category: 'food', name: '', amount: '', method: 'cash', isPublic: false });
-                showExpenseModal.value = true;
-            };
-            const saveExpense = () => {
-                if(!expenseForm.amount) return;
-                const d = new Date();
-                expenses.value.push({
-                    ...expenseForm,
-                    date: `${d.getMonth()+1}/${d.getDate()}`,
-                    id: Date.now()
-                });
-                showExpenseModal.value = false;
-            };
-            const deleteExpense = (idx) => expenses.value.splice(idx, 1);
-            
-            const totalExpenses = computed(() => expenses.value.reduce((sum, item) => sum + Number(item.amount), 0));
-            const totalByMethod = (method) => expenses.value.filter(e => e.method === method).reduce((sum, item) => sum + Number(item.amount), 0);
-            
-            const getExpenseIcon = (cat) => {
-                 const map = { food: 'fa-utensils', transport: 'fa-train-subway', shopping: 'fa-bag-shopping', hotel: 'fa-bed', other: 'fa-coins' };
-                 return 'fa-solid ' + (map[cat] || 'fa-circle');
-            };
-            const getExpenseColor = (cat) => {
-                 const map = { food: 'bg-orange-300', transport: 'bg-blue-300', shopping: 'bg-pink-300', hotel: 'bg-purple-300', other: 'bg-stone-400' };
-                 return map[cat];
-            };
-
-            const calcTravelTime = (prev, current) => {
-                return current.nextTravelTime || "15 min";
-            };
-            const editTravelTime = (event) => {
-                const newTime = prompt("交通時間", event.nextTravelTime || "15 min");
-                if(newTime) event.nextTravelTime = newTime;
-            };
             
             return {
                 currentTab, tabs, members, newMemberName, addMember, deleteMember,
