@@ -379,7 +379,7 @@
 
     createApp({
         setup() {
-            // State
+            // State (狀態)
             const currentTab = ref('info');
             const tabs = [
                 { id: 'info', name: '資訊', icon: 'fa-solid fa-info' },
@@ -388,17 +388,17 @@
                 { id: 'accounting', name: '記帳', icon: 'fa-solid fa-wallet' },
                 { id: 'members', name: '成員', icon: 'fa-solid fa-user-group' }
             ];
-            
+
             // Info
             const exchangeRate = ref(0.052);
             const exchangeInput = ref(1000);
             const flights = ref([]);
             
-            // Members
+            // Members (成員與彈窗設定)
             const members = ref([{name:'我', avatar:''}]);
             const newMemberName = ref('');
-            const showMemberModal = ref(false);
-            
+            const showMemberModal = ref(false); // <--- 這裡一定要是 false
+
             // Planning
             const planType = ref('todo');
             const todoList = ref([{text:'辦簽證', done:false}]);
@@ -414,7 +414,7 @@
 
             // Modals & Forms
             const showItemModal = ref(false);
-            const itemFormType = ref('shopping'); // shopping or wishlist
+            const itemFormType = ref('shopping'); 
             const itemForm = reactive({name:'', price:'', note:'', image:''});
             
             const showExpModal = ref(false);
@@ -424,7 +424,7 @@
             const eventForm = reactive({id:null, name:'', time:'10:00', category:'spot', ticket:'', note:'', nextTravelTime:'15 min'});
             const isEditing = ref(false);
 
-            // Init & Persist
+            // Init & Persist (讀取與儲存)
             onMounted(() => {
                 const saved = localStorage.getItem('hokkaido_v5');
                 if(saved) {
@@ -440,6 +440,7 @@
                 if(flights.value.length===0) flights.value.push({type:'去程', depCode:'HKG', arrCode:'CTS', depTime:'09:00', arrTime:'14:30', duration:'5h30m'});
             });
 
+            // 自動存檔
             watch([members, todoList, shoppingList, wishlist, itinerary, expenses, flights], () => {
                 localStorage.setItem('hokkaido_v5', JSON.stringify({
                     members: members.value, todoList: todoList.value, shoppingList: shoppingList.value, wishlist: wishlist.value,
@@ -451,20 +452,16 @@
             const addFlight = () => flights.value.push({type:'回程', depCode:'CTS', arrCode:'HKG', depTime:'16:00', arrTime:'20:30', duration:'5h30m'});
             const deleteFlight = (idx) => flights.value.splice(idx,1);
 
-            // Methods: Members
-           const addMember = () => { 
-        if(newMemberName.value) { 
-            members.value.push({
-                name: newMemberName.value, 
-                avatar: '' // 預設無頭像
-            }); 
-            newMemberName.value = ''; // 清空輸入框
-            showMemberModal.value = false; // 加入後關閉彈窗
-        } else {
-            alert('請輸入名字！');
-        }
-    };
-            
+            // Methods: Members (這裡修改過)
+            const addMember = () => { 
+                if(newMemberName.value) { 
+                    members.value.push({name:newMemberName.value, avatar:''}); 
+                    newMemberName.value=''; 
+                    showMemberModal.value = false; // 加入後關閉視窗
+                } else {
+                    alert('請輸入名字');
+                }
+            };
             const deleteMember = (idx) => { if(confirm('刪除?')) members.value.splice(idx,1); };
             const updateMemberAvatar = (e, idx) => {
                 const file = e.target.files[0];
@@ -531,7 +528,8 @@
                 exchangeRate, exchangeInput, flights, addFlight, deleteFlight,
                 planType, todoList, addTodo, deleteTodo, shoppingList, wishlist, openItemModal, showItemModal, itemForm, itemFormType, handleItemImg, saveItem, deleteShopping, deleteWishlist,
                 itinerary, currDayIdx, currentEvents, addDay, getDayDate, openEventModal, showEventModal, eventForm, saveEvent, editEvent, isEditing, deleteEvent, openMap, translateCat,
-                expenses, showExpModal, expForm, openExpenseModal, saveExpense, deleteExpense, totalExpense, totalByMethod, getCatColor, getCatIcon, showMemberModal, 
+                expenses, showExpModal, expForm, openExpenseModal, saveExpense, deleteExpense, totalExpense, totalByMethod, getCatColor, getCatIcon,
+                showMemberModal // <--- 確保這裡有回傳
             };
         }
     }).mount('#app');
