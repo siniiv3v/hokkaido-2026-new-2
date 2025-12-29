@@ -45,8 +45,8 @@
         .hide-scrollbar::-webkit-scrollbar { display: none; }
         .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
         
-        /* 玻璃擬態 */
-        .glass { background: rgba(249, 249, 247, 0.9); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
+        /* 玻璃擬態 header */
+        .glass { background: rgba(249, 249, 247, 0.95); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
         
         /* 動畫 */
         .slide-up { animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1); }
@@ -59,20 +59,39 @@
 
 <div id="app" class="flex flex-col h-full relative">
 
-    <!-- Header -->
-    <header class="glass z-30 pt-safe-top border-b border-stone-200/50 absolute top-0 w-full">
-        <div class="h-14 flex items-center justify-center">
+    <!-- Header (包含標題 + 橫向 Tabs) -->
+    <header class="glass z-30 pt-safe-top border-b border-stone-200/50 absolute top-0 w-full shadow-sm flex flex-col">
+        
+        <!-- 上層：標題 -->
+        <div class="h-12 flex items-center justify-center shrink-0">
             <h1 class="text-xl font-bold tracking-widest flex items-center gap-2 text-muji-text">
                 Hokkaido <i class="fa-regular fa-snowflake text-muji-accent text-2xl animate-pulse"></i>
             </h1>
         </div>
+
+        <!-- 下層：橫向分頁 (Tabs) -->
+        <nav class="flex w-full overflow-x-auto hide-scrollbar px-2 pb-0">
+            <button v-for="tab in tabs" :key="tab.id" @click="currentTab = tab.id" 
+                class="flex-1 min-w-[4rem] flex flex-col items-center justify-center pb-2 pt-1 gap-1 relative transition-colors group"
+                :class="currentTab === tab.id ? 'text-muji-text' : 'text-stone-300 hover:text-stone-400'">
+                
+                <i :class="tab.icon" class="text-lg transition-transform duration-300" 
+                   :class="currentTab === tab.id ? '-translate-y-0.5' : ''"></i>
+                <span class="text-[10px] font-bold tracking-wide">{{ tab.name }}</span>
+                
+                <!-- Active Indicator (底線) -->
+                <div class="absolute bottom-0 w-8 h-1 bg-muji-accent rounded-t-full transition-all duration-300"
+                     :class="currentTab === tab.id ? 'opacity-100 scale-100' : 'opacity-0 scale-0'"></div>
+            </button>
+        </nav>
     </header>
 
     <!-- Main Content -->
-    <main class="flex-1 overflow-y-auto hide-scrollbar pt-20 pb-28 px-5 bg-muji-bg">
+    <!-- pt-28: 增加頂部間距以容納標題+Tab, pb-safe-bottom: 避開手機底部橫條 -->
+    <main class="flex-1 overflow-y-auto hide-scrollbar pt-28 pb-safe-bottom px-5 bg-muji-bg">
         
-        <!-- ===== 分頁 1: 資訊 (Info / Dashboard) ===== -->
-        <div v-if="currentTab === 'info'" class="fade-in space-y-6">
+        <!-- ===== 1. 資訊 (Info / Dashboard) ===== -->
+        <div v-if="currentTab === 'info'" class="fade-in space-y-6 pb-20">
             <!-- 天氣與匯率 -->
             <div class="grid grid-cols-2 gap-4">
                 <!-- 天氣 -->
@@ -168,7 +187,7 @@
         </div>
 
         <!-- ===== 分頁 2: 準備 (Planning: Todo + Shopping) ===== -->
-        <div v-if="currentTab === 'planning'" class="fade-in space-y-6">
+        <div v-if="currentTab === 'planning'" class="fade-in space-y-6 pb-20">
             <!-- 切換子分頁 -->
             <div class="flex p-1 bg-stone-200/50 rounded-xl mb-4">
                 <button @click="planType = 'todo'" :class="planType === 'todo' ? 'bg-white shadow-sm text-muji-text' : 'text-muji-sub'" class="flex-1 py-2 rounded-lg text-sm font-bold transition-all">待辦/行李</button>
@@ -203,12 +222,12 @@
                     </div>
                 </div>
                 <!-- FAB -->
-                <button @click="openShoppingModal" class="fixed bottom-24 right-5 w-14 h-14 bg-stone-800 text-white rounded-[1.25rem] shadow-float flex items-center justify-center text-xl z-20 active:scale-90 transition-transform"><i class="fa-solid fa-camera"></i></button>
+                <button @click="openShoppingModal" class="fixed bottom-10 right-5 w-14 h-14 bg-stone-800 text-white rounded-[1.25rem] shadow-float flex items-center justify-center text-xl z-20 active:scale-90 transition-transform"><i class="fa-solid fa-camera"></i></button>
             </div>
         </div>
 
         <!-- ===== 分頁 3: 行程 (Itinerary) ===== -->
-        <div v-if="currentTab === 'itinerary'" class="fade-in">
+        <div v-if="currentTab === 'itinerary'" class="fade-in pb-20">
             <!-- 日期 Scroll -->
             <div class="flex gap-3 overflow-x-auto hide-scrollbar mb-6 pb-2">
                 <div v-for="(day, idx) in itinerary" :key="idx" 
@@ -267,12 +286,12 @@
                 </div>
                 
                 <!-- 新增按鈕 -->
-                 <button @click="openEventModal" class="fixed bottom-24 right-5 w-14 h-14 bg-muji-text text-white rounded-[1.25rem] shadow-float flex items-center justify-center text-xl z-20 active:scale-90 transition-transform"><i class="fa-solid fa-plus"></i></button>
+                 <button @click="openEventModal" class="fixed bottom-10 right-5 w-14 h-14 bg-muji-text text-white rounded-[1.25rem] shadow-float flex items-center justify-center text-xl z-20 active:scale-90 transition-transform"><i class="fa-solid fa-plus"></i></button>
             </div>
         </div>
 
         <!-- ===== 分頁 4: 記帳 (Accounting) ===== -->
-        <div v-if="currentTab === 'accounting'" class="fade-in space-y-6">
+        <div v-if="currentTab === 'accounting'" class="fade-in space-y-6 pb-20">
             <!-- 總覽卡片 -->
             <div class="bg-stone-800 text-[#F9F9F7] rounded-[2rem] p-6 shadow-float relative overflow-hidden">
                 <p class="text-xs text-stone-400 uppercase tracking-widest mb-1">Total Spent</p>
@@ -309,11 +328,11 @@
             </div>
             
             <!-- FAB -->
-            <button @click="openExpenseModal" class="fixed bottom-24 right-5 w-14 h-14 bg-muji-text text-white rounded-[1.25rem] shadow-float flex items-center justify-center text-xl z-20 active:scale-90 transition-transform"><i class="fa-solid fa-pen"></i></button>
+            <button @click="openExpenseModal" class="fixed bottom-10 right-5 w-14 h-14 bg-muji-text text-white rounded-[1.25rem] shadow-float flex items-center justify-center text-xl z-20 active:scale-90 transition-transform"><i class="fa-solid fa-pen"></i></button>
         </div>
 
         <!-- ===== 分頁 5: 成員 (Members) ===== -->
-        <div v-if="currentTab === 'members'" class="fade-in">
+        <div v-if="currentTab === 'members'" class="fade-in pb-20">
             <h2 class="text-lg font-bold text-muji-text mb-4">旅伴名單</h2>
             <div class="grid grid-cols-2 gap-4">
                 <div v-for="(m, idx) in members" :key="idx" class="bg-white p-5 rounded-[1.5rem] shadow-soft flex flex-col items-center relative group">
@@ -335,19 +354,7 @@
 
     </main>
 
-    <!-- Bottom Navigation -->
-    <nav class="glass border-t border-stone-200 fixed bottom-0 w-full z-40 pb-safe-bottom">
-        <div class="flex justify-around items-center h-20">
-            <button v-for="tab in tabs" :key="tab.id" @click="currentTab = tab.id" 
-                class="flex flex-col items-center justify-center w-16 transition-all duration-300 group">
-                <div :class="currentTab === tab.id ? '-translate-y-1 text-muji-text' : 'text-stone-300'" class="transition-transform duration-300 text-xl mb-1">
-                    <i :class="tab.icon"></i>
-                </div>
-                <span :class="currentTab === tab.id ? 'opacity-100 text-muji-text' : 'opacity-0'" class="text-[10px] font-bold tracking-wide transition-opacity absolute bottom-2">{{ tab.name }}</span>
-                <div :class="currentTab === tab.id ? 'scale-100 opacity-100' : 'scale-0 opacity-0'" class="w-1 h-1 bg-muji-accent rounded-full absolute top-3 transition-all duration-300"></div>
-            </button>
-        </div>
-    </nav>
+    <!-- (NO BOTTOM NAV HERE) -->
 
     <!-- Modals -->
     
