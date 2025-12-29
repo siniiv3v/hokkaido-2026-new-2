@@ -380,7 +380,6 @@
     createApp({
         setup() {
             // State
-            const showMemberModal = ref(false); // 控制彈窗顯示
             const currentTab = ref('info');
             const tabs = [
                 { id: 'info', name: '資訊', icon: 'fa-solid fa-info' },
@@ -390,6 +389,8 @@
                 { id: 'members', name: '成員', icon: 'fa-solid fa-user-group' }
             ];
 
+             const showMemberModal = ref(false); // 控制彈窗顯示
+            
             // Info
             const exchangeRate = ref(0.052);
             const exchangeInput = ref(1000);
