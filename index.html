@@ -388,8 +388,6 @@
                 { id: 'accounting', name: '記帳', icon: 'fa-solid fa-wallet' },
                 { id: 'members', name: '成員', icon: 'fa-solid fa-user-group' }
             ];
-
-             const showMemberModal = ref(false); // 控制彈窗顯示
             
             // Info
             const exchangeRate = ref(0.052);
@@ -399,7 +397,8 @@
             // Members
             const members = ref([{name:'我', avatar:''}]);
             const newMemberName = ref('');
-      
+            const showMemberModal = ref(false);
+            
             // Planning
             const planType = ref('todo');
             const todoList = ref([{text:'辦簽證', done:false}]);
@@ -460,7 +459,7 @@
                 avatar: '' // 預設無頭像
             }); 
             newMemberName.value = ''; // 清空輸入框
-            showMemberModal.value = false; // 關閉彈窗
+            showMemberModal.value = false; // 加入後關閉彈窗
         } else {
             alert('請輸入名字！');
         }
@@ -528,11 +527,11 @@
             const getCatIcon = (c) => ({'food':'fa-utensils','transport':'fa-train','shopping':'fa-bag-shopping','hotel':'fa-bed'}[c]||'fa-star');
 
             return {
-                currentTab, tabs, members, newMemberName, showMemberModal, addMember, deleteMember, updateMemberAvatar,
+                currentTab, tabs, members, newMemberName, addMember, deleteMember, updateMemberAvatar,
                 exchangeRate, exchangeInput, flights, addFlight, deleteFlight,
                 planType, todoList, addTodo, deleteTodo, shoppingList, wishlist, openItemModal, showItemModal, itemForm, itemFormType, handleItemImg, saveItem, deleteShopping, deleteWishlist,
                 itinerary, currDayIdx, currentEvents, addDay, getDayDate, openEventModal, showEventModal, eventForm, saveEvent, editEvent, isEditing, deleteEvent, openMap, translateCat,
-                expenses, showExpModal, expForm, openExpenseModal, saveExpense, deleteExpense, totalExpense, totalByMethod, getCatColor, getCatIcon
+                expenses, showExpModal, expForm, openExpenseModal, saveExpense, deleteExpense, totalExpense, totalByMethod, getCatColor, getCatIcon, showMemberModal, 
             };
         }
     }).mount('#app');
