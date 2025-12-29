@@ -236,10 +236,39 @@
         </div>
 
         <!-- ===== 5. 成員 (Members) - 更新版 ===== -->
-        <div v-if="currentTab === 'members'" class="fade-in pb-20">
-            <h2 class="text-lg font-bold text-muji-text mb-4">旅伴名單</h2>
-            <div class="grid grid-cols-2 gap-4">
-                <div v-for="(m, idx) in members" :key="idx" class="bg-white p-5 rounded-[1.5rem] shadow-soft flex flex-col items-center relative group">
+<div v-if="currentTab === 'members'" class="fade-in pb-20">
+    <div class="flex justify-between items-end mb-4 px-1">
+        <h2 class="text-lg font-bold text-muji-text">旅伴名單</h2>
+        <span class="text-xs text-stone-400 font-bold bg-stone-100 px-2 py-1 rounded-lg">共 {{ members.length }} 人</span>
+    </div>
+    
+    <div class="grid grid-cols-2 gap-4">
+        <!-- 現有成員卡片 -->
+        <div v-for="(m, idx) in members" :key="idx" class="bg-white p-5 rounded-[1.5rem] shadow-soft flex flex-col items-center relative group active:scale-[0.98] transition-transform">
+            <!-- 刪除按鈕 -->
+            <button @click="deleteMember(idx)" class="absolute top-2 right-2 w-8 h-8 flex items-center justify-center text-stone-200 hover:text-red-400 hover:bg-red-50 rounded-full transition-colors"><i class="fa-solid fa-xmark"></i></button>
+            
+            <!-- 頭像 (點擊可更換) -->
+            <label class="w-20 h-20 rounded-full bg-stone-50 mb-3 overflow-hidden relative cursor-pointer border border-stone-100 shadow-inner group-hover:border-muji-accent transition-colors">
+                    <img v-if="m.avatar" :src="m.avatar" class="w-full h-full object-cover">
+                    <div v-else class="w-full h-full flex flex-col items-center justify-center text-stone-300">
+                        <i class="fa-solid fa-user text-2xl mb-1"></i>
+                        <span class="text-[10px]">更換</span>
+                    </div>
+                    <input type="file" accept="image/*" @change="(e) => updateMemberAvatar(e, idx)" class="hidden">
+            </label>
+            
+            <span class="font-bold text-muji-text text-lg">{{ m.name }}</span>
+            <span class="text-[10px] text-stone-400 mt-1 bg-stone-100 px-2 rounded-full" v-if="idx === 0">主辦人</span>
+        </div>
+        
+        <!-- 新增成員按鈕 (虛線框) -->
+        <button @click="showMemberModal = true" class="bg-stone-50/50 border-2 border-dashed border-stone-300 rounded-[1.5rem] flex flex-col items-center justify-center min-h-[11rem] gap-2 text-stone-400 hover:bg-white hover:border-muji-accent hover:text-muji-accent transition-all shadow-sm">
+            <div class="w-12 h-12 rounded-full bg-stone-200 flex items-center justify-center text-white text-xl shadow-inner group-hover:bg-muji-accent"><i class="fa-solid fa-plus"></i></div>
+            <span class="text-xs font-bold">加入新旅伴</span>
+        </button>
+    </div>
+</div>
                     <!-- 頭像上傳區 -->
                     <label class="w-16 h-16 rounded-full bg-stone-100 mb-3 overflow-hidden relative cursor-pointer hover:opacity-80 transition-opacity">
                          <img v-if="m.avatar" :src="m.avatar" class="w-full h-full object-cover">
@@ -261,8 +290,7 @@
     </main>
 
     <!-- Modals -->
-    
-    <!-- Item Modal (Shopping & Wishlist) -->
+   <!-- Item Modal (Shopping & Wishlist) -->
     <div v-if="showItemModal" class="fixed inset-0 z-[60] flex items-end justify-center bg-stone-900/30 backdrop-blur-sm" @click.self="showItemModal=false">
         <div class="bg-white w-full rounded-t-[2rem] p-6 slide-up pb-safe-bottom">
             <h3 class="text-center font-bold text-lg mb-6">{{ itemFormType === 'shopping' ? '新增購物清單' : '新增想去景點' }}</h3>
@@ -324,8 +352,24 @@
                  <button @click="saveEvent" class="flex-1 bg-stone-800 text-white py-4 rounded-2xl font-bold shadow-lg">完成</button>
             </div>
         </div>
-    </div>
+        
+    <!-- Member Modal -->
+<div v-if="showMemberModal" class="fixed inset-0 z-[60] flex items-end justify-center bg-stone-900/30 backdrop-blur-sm" @click.self="showMemberModal=false">
+    <div class="bg-white w-full rounded-t-[2rem] p-6 slide-up pb-safe-bottom">
+        <h3 class="text-center font-bold text-lg mb-6">新增旅伴</h3>
+        
+        <div class="bg-stone-50 rounded-2xl p-6 mb-6 flex flex-col items-center justify-center border border-stone-100">
+            <div class="w-20 h-20 rounded-full bg-stone-200 mb-4 flex items-center justify-center text-white text-3xl shadow-inner">
+                <i class="fa-solid fa-user"></i>
+            </div>
+            <p class="text-xs text-stone-400">頭像可在新增後點擊圖片上傳</p>
+        </div>
 
+        <input v-model="newMemberName" placeholder="旅伴名字 (例如: 小明)" class="w-full p-4 bg-stone-50 rounded-2xl mb-6 font-bold text-center text-lg placeholder-stone-300 focus:bg-white focus:ring-2 focus:ring-stone-100 transition-all">
+        
+        <button @click="addMember" class="w-full bg-stone-800 text-white py-4 rounded-2xl font-bold shadow-lg active:scale-[0.98] transition-transform">確認加入</button>
+    </div>
+</div>
 </div>
 
 <script>
@@ -334,6 +378,7 @@
     createApp({
         setup() {
             // State
+            const showMemberModal = ref(false); // 控制彈窗顯示
             const currentTab = ref('info');
             const tabs = [
                 { id: 'info', name: '資訊', icon: 'fa-solid fa-info' },
@@ -351,7 +396,7 @@
             // Members
             const members = ref([{name:'我', avatar:''}]);
             const newMemberName = ref('');
-
+      
             // Planning
             const planType = ref('todo');
             const todoList = ref([{text:'辦簽證', done:false}]);
@@ -405,7 +450,18 @@
             const deleteFlight = (idx) => flights.value.splice(idx,1);
 
             // Methods: Members
-            const addMember = () => { if(newMemberName.value) { members.value.push({name:newMemberName.value, avatar:''}); newMemberName.value=''; } };
+           const addMember = () => { 
+        if(newMemberName.value) { 
+            members.value.push({
+                name: newMemberName.value, 
+                avatar: '' // 預設無頭像
+            }); 
+            newMemberName.value = ''; // 清空輸入框
+            showMemberModal.value = false; // 關閉彈窗
+        } else {
+            alert('請輸入名字！');
+        }
+    };
             const deleteMember = (idx) => { if(confirm('刪除?')) members.value.splice(idx,1); };
             const updateMemberAvatar = (e, idx) => {
                 const file = e.target.files[0];
@@ -468,7 +524,7 @@
             const getCatIcon = (c) => ({'food':'fa-utensils','transport':'fa-train','shopping':'fa-bag-shopping','hotel':'fa-bed'}[c]||'fa-star');
 
             return {
-                currentTab, tabs, members, newMemberName, addMember, deleteMember, updateMemberAvatar,
+                currentTab, tabs, members, newMemberName, showMemberModal, addMember, deleteMember, updateMemberAvatar,
                 exchangeRate, exchangeInput, flights, addFlight, deleteFlight,
                 planType, todoList, addTodo, deleteTodo, shoppingList, wishlist, openItemModal, showItemModal, itemForm, itemFormType, handleItemImg, saveItem, deleteShopping, deleteWishlist,
                 itinerary, currDayIdx, currentEvents, addDay, getDayDate, openEventModal, showEventModal, eventForm, saveEvent, editEvent, isEditing, deleteEvent, openMap, translateCat,
