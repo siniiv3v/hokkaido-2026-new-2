@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
@@ -52,7 +53,6 @@
         .fade-in { animation: fadeIn 0.3s ease-out; }
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
-        /* 防閃爍：Vue 載入前隱藏 */
         [v-cloak] { display: none; }
     </style>
 </head>
@@ -83,15 +83,29 @@
         
         <!-- ===== 1. 資訊 (Info) ===== -->
         <div v-if="currentTab === 'info'" class="fade-in space-y-6 pb-20">
+            
+            <!-- 天氣與匯率 -->
             <div class="grid grid-cols-2 gap-4">
-                <div class="bg-gradient-to-br from-[#A5B4C4] to-[#8DA3C1] rounded-[2rem] p-5 text-white shadow-soft relative overflow-hidden group">
-                    <div class="relative z-10">
-                        <p class="text-[10px] font-medium opacity-80 uppercase tracking-widest">Weather</p>
-                        <h3 class="text-3xl font-bold mt-2">-2°c</h3>
-                        <div class="flex items-center gap-2 mt-2 opacity-90 text-sm"><i class="fa-solid fa-snowflake"></i> <span>Sapporo</span></div>
+                <!-- 天氣卡片 (升級版) -->
+                <div @click="toggleWeather" class="bg-gradient-to-br from-[#A5B4C4] to-[#8DA3C1] rounded-[2rem] p-5 text-white shadow-soft relative overflow-hidden group cursor-pointer active:scale-95 transition-transform">
+                    <div class="relative z-10 flex flex-col h-full justify-between">
+                        <div class="flex justify-between items-start">
+                            <p class="text-[10px] font-medium opacity-80 uppercase tracking-widest">Weather</p>
+                            <i :class="weatherIcon" class="text-2xl animate-pulse"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-4xl font-bold -ml-1">{{ weather.temp }}°</h3>
+                            <div class="flex items-center gap-1 mt-1 opacity-90 text-[10px]">
+                                <i class="fa-solid fa-temperature-half"></i> 
+                                <span>體感 {{ weather.feelsLike }}°</span>
+                            </div>
+                        </div>
                     </div>
-                    <i class="fa-solid fa-wind absolute -bottom-4 -right-4 text-8xl opacity-10"></i>
+                    <!-- 背景裝飾 -->
+                    <i :class="weatherIcon" class="absolute -bottom-6 -right-6 text-[7rem] opacity-10 rotate-12"></i>
                 </div>
+
+                <!-- 匯率 -->
                 <div class="bg-white rounded-[2rem] p-5 shadow-soft relative border border-stone-50 flex flex-col justify-between">
                     <div>
                         <p class="text-[10px] text-stone-400 font-bold uppercase tracking-widest">Rate (HKD)</p>
@@ -105,15 +119,66 @@
                     </div>
                 </div>
             </div>
+
+            <!-- 住宿資訊 (新增功能) -->
+            <div class="space-y-4">
+                <div class="flex justify-between items-end px-1">
+                    <h2 class="text-sm font-bold text-muji-text border-l-4 border-muji-accent pl-2">住宿安排</h2>
+                    <button @click="openHotelModal(false)" class="text-xs text-stone-400 bg-white border border-stone-200 px-3 py-1.5 rounded-full shadow-sm active:scale-90 transition-transform"><i class="fa-solid fa-plus mr-1"></i>新增</button>
+                </div>
+
+                <div v-if="hotels.length === 0" class="text-center py-8 bg-white/50 rounded-[2rem] border-2 border-dashed border-stone-200">
+                    <p class="text-xs text-stone-400">尚未新增住宿</p>
+                </div>
+
+                <div v-for="(hotel, idx) in hotels" :key="hotel.id" @click="openHotelModal(true, hotel)" class="bg-white rounded-[2rem] shadow-soft overflow-hidden group active:scale-[0.99] transition-transform cursor-pointer">
+                    <!-- 圖片區 -->
+                    <div class="h-32 bg-stone-200 relative">
+                        <img v-if="hotel.image" :src="hotel.image" class="w-full h-full object-cover">
+                        <div v-else class="w-full h-full flex items-center justify-center text-stone-400 flex-col">
+                            <i class="fa-solid fa-hotel text-2xl mb-1"></i>
+                            <span class="text-[10px]">無照片</span>
+                        </div>
+                        <div class="absolute top-3 right-3 bg-white/90 backdrop-blur px-3 py-1 rounded-full text-xs font-bold shadow-sm">
+                            ¥ {{ Number(hotel.price).toLocaleString() }} <span class="text-[10px] text-stone-400 font-normal">/總價</span>
+                        </div>
+                    </div>
+                    <!-- 資訊區 -->
+                    <div class="p-5">
+                        <h3 class="font-bold text-lg text-muji-text leading-tight mb-1">{{ hotel.name }}</h3>
+                        <p class="text-xs text-stone-400 mb-3"><i class="fa-solid fa-map-pin mr-1 text-muji-accent"></i>{{ hotel.address || '未填寫地址' }}</p>
+                        
+                        <div class="flex items-center justify-between bg-stone-50 rounded-xl p-3 mb-3">
+                            <div class="text-center">
+                                <p class="text-[10px] text-stone-400 uppercase">Check-in</p>
+                                <p class="font-bold text-sm">{{ hotel.checkIn }}</p>
+                            </div>
+                            <i class="fa-solid fa-arrow-right text-stone-200 text-xs"></i>
+                            <div class="text-center">
+                                <p class="text-[10px] text-stone-400 uppercase">Check-out</p>
+                                <p class="font-bold text-sm">{{ hotel.checkOut }}</p>
+                            </div>
+                        </div>
+
+                        <!-- 分攤金額計算 -->
+                        <div class="flex items-center justify-between border-t border-stone-100 pt-3">
+                            <span class="text-xs text-stone-400 font-bold">每人分攤 ({{ members.length }}人)</span>
+                            <span class="text-lg font-bold text-muji-text">¥ {{ (hotel.price / (members.length || 1)).toLocaleString(undefined, {maximumFractionDigits:0}) }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+             <!-- 航班資訊 -->
              <div class="bg-white rounded-[2rem] shadow-soft p-5 overflow-hidden relative">
-                 <h2 class="text-sm font-bold text-muji-text mb-3">我的航班</h2>
+                 <h2 class="text-sm font-bold text-muji-text mb-3 border-l-4 border-stone-300 pl-2">航班資訊</h2>
                  <div v-for="(flight, idx) in flights" :key="idx" class="flex justify-between items-center border-b border-stone-100 pb-3 last:border-0 last:pb-0 mb-3 last:mb-0">
                      <div class="text-center"><span class="block text-xl font-bold">{{ flight.depCode }}</span><span class="text-[10px] text-stone-400">{{ flight.depTime }}</span></div>
                      <i class="fa-solid fa-plane text-stone-300"></i>
                      <div class="text-center"><span class="block text-xl font-bold">{{ flight.arrCode }}</span><span class="text-[10px] text-stone-400">{{ flight.arrTime }}</span></div>
                      <button @click="deleteFlight(idx)" class="text-stone-200 hover:text-red-400 ml-2"><i class="fa-solid fa-trash"></i></button>
                  </div>
-                 <button @click="addFlight" class="w-full mt-2 py-2 text-xs text-stone-400 border border-dashed border-stone-200 rounded-xl">+ 新增航班</button>
+                 <button @click="addFlight" class="w-full mt-2 py-2 text-xs text-stone-400 border border-dashed border-stone-200 rounded-xl hover:bg-stone-50">+ 新增航班</button>
              </div>
         </div>
 
@@ -228,7 +293,7 @@
             <button @click="openExpenseModal" class="fixed bottom-10 right-5 w-14 h-14 bg-muji-text text-white rounded-[1.25rem] shadow-float flex items-center justify-center text-xl z-20 active:scale-90 transition-transform"><i class="fa-solid fa-pen"></i></button>
         </div>
 
-        <!-- ===== 5. 成員 (Members) - 修正版 ===== -->
+        <!-- ===== 5. 成員 (Members) ===== -->
         <div v-if="currentTab === 'members'" class="fade-in pb-20">
             <div class="flex justify-between items-end mb-4 px-1">
                 <h2 class="text-lg font-bold text-muji-text">旅伴名單</h2>
@@ -325,7 +390,7 @@
         </div>
     </div>
 
-    <!-- Member Modal (新增成員彈窗) -->
+    <!-- Member Modal -->
     <div v-if="showMemberModal" class="fixed inset-0 z-[60] flex items-end justify-center bg-stone-900/30 backdrop-blur-sm" @click.self="showMemberModal=false">
         <div class="bg-white w-full rounded-t-[2rem] p-6 slide-up pb-safe-bottom">
             <h3 class="text-center font-bold text-lg mb-6">新增旅伴</h3>
@@ -340,6 +405,45 @@
             <input v-model="newMemberName" placeholder="旅伴名字 (例如: 小明)" class="w-full p-4 bg-stone-50 rounded-2xl mb-6 font-bold text-center text-lg placeholder-stone-300 focus:bg-white focus:ring-2 focus:ring-stone-100 transition-all">
             
             <button @click="addMember" class="w-full bg-stone-800 text-white py-4 rounded-2xl font-bold shadow-lg active:scale-[0.98] transition-transform">確認加入</button>
+        </div>
+    </div>
+
+    <!-- Hotel Modal (新增住宿彈窗) -->
+    <div v-if="showHotelModal" class="fixed inset-0 z-[60] flex items-end justify-center bg-stone-900/30 backdrop-blur-sm" @click.self="showHotelModal=false">
+        <div class="bg-white w-full rounded-t-[2rem] p-6 slide-up pb-safe-bottom">
+            <h3 class="text-center font-bold text-lg mb-6">{{ hotelForm.id ? '編輯住宿' : '新增住宿' }}</h3>
+            
+            <label class="block w-full h-32 bg-stone-50 rounded-2xl border-2 border-dashed border-stone-200 mb-4 flex items-center justify-center relative overflow-hidden">
+                <img v-if="hotelForm.image" :src="hotelForm.image" class="w-full h-full object-cover">
+                <div v-else class="text-stone-400 flex flex-col items-center"><i class="fa-solid fa-hotel mb-1"></i><span class="text-xs">飯店照片</span></div>
+                <input type="file" accept="image/*" @change="handleHotelImg" class="hidden">
+            </label>
+            
+            <div class="space-y-3">
+                <input v-model="hotelForm.name" placeholder="飯店名稱" class="w-full p-4 bg-stone-50 rounded-2xl font-bold">
+                <input v-model="hotelForm.address" placeholder="地址" class="w-full p-4 bg-stone-50 rounded-2xl text-sm">
+                
+                <div class="flex gap-2">
+                    <div class="flex-1 bg-stone-50 p-3 rounded-2xl">
+                        <span class="block text-[10px] text-stone-400 mb-1">Check-in</span>
+                        <input type="time" v-model="hotelForm.checkIn" class="bg-transparent font-bold w-full text-center">
+                    </div>
+                    <div class="flex-1 bg-stone-50 p-3 rounded-2xl">
+                        <span class="block text-[10px] text-stone-400 mb-1">Check-out</span>
+                        <input type="time" v-model="hotelForm.checkOut" class="bg-transparent font-bold w-full text-center">
+                    </div>
+                </div>
+
+                <div class="bg-stone-50 p-4 rounded-2xl flex items-center gap-2">
+                    <span class="text-sm font-bold text-stone-500">總金額 (JPY)</span>
+                    <input type="number" v-model="hotelForm.price" class="bg-transparent text-right font-bold text-lg w-full" placeholder="0">
+                </div>
+            </div>
+
+            <div class="flex gap-3 mt-6">
+                <button v-if="hotelForm.id" @click="deleteHotel" class="w-14 bg-red-50 text-red-400 rounded-2xl flex items-center justify-center"><i class="fa-solid fa-trash"></i></button>
+                <button @click="saveHotel" class="flex-1 bg-stone-800 text-white py-4 rounded-2xl font-bold shadow-lg">儲存</button>
+           </div>
         </div>
     </div>
 
@@ -360,15 +464,36 @@
                 { id: 'members', name: '成員', icon: 'fa-solid fa-user-group' }
             ];
 
-            // Info
+            // Info - Weather
+            const weather = ref({ condition: 'snow', temp: -2, feelsLike: -6 }); // conditions: sun, cloud, rain, snow
+            const weatherIcon = computed(() => {
+                const map = { 'sun': 'fa-solid fa-sun text-yellow-400', 'cloud': 'fa-solid fa-cloud text-gray-200', 'rain': 'fa-solid fa-cloud-rain text-blue-300', 'snow': 'fa-regular fa-snowflake' };
+                return map[weather.value.condition] || map['snow'];
+            });
+            const toggleWeather = () => {
+                const types = ['sun', 'cloud', 'rain', 'snow'];
+                const next = types[(types.indexOf(weather.value.condition) + 1) % types.length];
+                weather.value.condition = next;
+                // 模擬溫度變化
+                if(next==='sun') { weather.value.temp=2; weather.value.feelsLike=0; }
+                else if(next==='snow') { weather.value.temp=-2; weather.value.feelsLike=-6; }
+                else { weather.value.temp=0; weather.value.feelsLike=-3; }
+            };
+
+            // Info - Basic
             const exchangeRate = ref(0.052);
             const exchangeInput = ref(1000);
             const flights = ref([]);
             
+            // Info - Hotels (New)
+            const hotels = ref([]);
+            const showHotelModal = ref(false);
+            const hotelForm = reactive({ id:null, name:'', address:'', checkIn:'15:00', checkOut:'11:00', price:'', image:'' });
+
             // Members
             const members = ref([{name:'我', avatar:''}]);
             const newMemberName = ref('');
-            const showMemberModal = ref(false); // 預設關閉
+            const showMemberModal = ref(false);
 
             // Planning
             const planType = ref('todo');
@@ -397,7 +522,7 @@
 
             // Init & Persist
             onMounted(() => {
-                const saved = localStorage.getItem('hokkaido_v5');
+                const saved = localStorage.getItem('hokkaido_v6'); // Update version key
                 if(saved) {
                     const data = JSON.parse(saved);
                     members.value = data.members || members.value;
@@ -407,20 +532,56 @@
                     itinerary.value = data.itinerary || itinerary.value;
                     expenses.value = data.expenses || [];
                     flights.value = data.flights || [];
+                    hotels.value = data.hotels || [];
+                    if(data.weather) weather.value = data.weather;
                 }
                 if(flights.value.length===0) flights.value.push({type:'去程', depCode:'HKG', arrCode:'CTS', depTime:'09:00', arrTime:'14:30', duration:'5h30m'});
             });
 
-            watch([members, todoList, shoppingList, wishlist, itinerary, expenses, flights], () => {
-                localStorage.setItem('hokkaido_v5', JSON.stringify({
+            watch([members, todoList, shoppingList, wishlist, itinerary, expenses, flights, hotels, weather], () => {
+                localStorage.setItem('hokkaido_v6', JSON.stringify({
                     members: members.value, todoList: todoList.value, shoppingList: shoppingList.value, wishlist: wishlist.value,
-                    itinerary: itinerary.value, expenses: expenses.value, flights: flights.value
+                    itinerary: itinerary.value, expenses: expenses.value, flights: flights.value,
+                    hotels: hotels.value, weather: weather.value
                 }));
             }, { deep: true });
 
-            // Methods: Info
+            // Methods: Info - Flights
             const addFlight = () => flights.value.push({type:'回程', depCode:'CTS', arrCode:'HKG', depTime:'16:00', arrTime:'20:30', duration:'5h30m'});
             const deleteFlight = (idx) => flights.value.splice(idx,1);
+
+            // Methods: Info - Hotels
+            const openHotelModal = (isEdit, hotelData=null) => {
+                if(isEdit && hotelData) Object.assign(hotelForm, hotelData);
+                else Object.assign(hotelForm, { id:null, name:'', address:'', checkIn:'15:00', checkOut:'11:00', price:'', image:'' });
+                showHotelModal.value = true;
+            };
+            const handleHotelImg = (e) => {
+                const file = e.target.files[0];
+                if(file) {
+                    const reader = new FileReader();
+                    reader.onload = (e) => hotelForm.image = e.target.result;
+                    reader.readAsDataURL(file);
+                }
+            };
+            const saveHotel = () => {
+                if(hotelForm.name) {
+                    if(hotelForm.id) {
+                        const idx = hotels.value.findIndex(h => h.id === hotelForm.id);
+                        if(idx !== -1) hotels.value[idx] = {...hotelForm};
+                    } else {
+                        hotels.value.push({...hotelForm, id: Date.now()});
+                    }
+                    showHotelModal.value = false;
+                }
+            };
+            const deleteHotel = () => {
+                if(confirm('確定刪除此住宿？')) {
+                    const idx = hotels.value.findIndex(h => h.id === hotelForm.id);
+                    if(idx !== -1) hotels.value.splice(idx, 1);
+                    showHotelModal.value = false;
+                }
+            };
 
             // Methods: Members
             const addMember = () => { 
@@ -496,6 +657,8 @@
             return {
                 currentTab, tabs, members, newMemberName, addMember, deleteMember, updateMemberAvatar, showMemberModal,
                 exchangeRate, exchangeInput, flights, addFlight, deleteFlight,
+                weather, weatherIcon, toggleWeather, // New Weather
+                hotels, showHotelModal, hotelForm, openHotelModal, handleHotelImg, saveHotel, deleteHotel, // New Hotels
                 planType, todoList, addTodo, deleteTodo, shoppingList, wishlist, openItemModal, showItemModal, itemForm, itemFormType, handleItemImg, saveItem, deleteShopping, deleteWishlist,
                 itinerary, currDayIdx, currentEvents, addDay, getDayDate, openEventModal, showEventModal, eventForm, saveEvent, editEvent, isEditing, deleteEvent, openMap, translateCat,
                 expenses, showExpModal, expForm, openExpenseModal, saveExpense, deleteExpense, totalExpense, totalByMethod, getCatColor, getCatIcon
