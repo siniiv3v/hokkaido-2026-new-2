@@ -147,7 +147,7 @@
                     </div>
                     <div class="text-right">
                         <span class="block text-3xl font-bold text-stone-700">${{ (exchangeInput * exchangeRate).toFixed(1) }}</span>
-                        <span class="text-[10px] text-stone-400">匯率 {{ exchangeRate }}</span>
+                        <span class="text-[10px] text-stone-400">即時匯率 {{ Number(exchangeRate).toFixed(4) }}</span>
                     </div>
                 </div>
             </div>
@@ -440,6 +440,20 @@
             const flights = ref([{type:'去程', depCode:'HKG', arrCode:'CTS', depTime:'09:00', arrTime:'14:30', duration:'5h30m'}]);
             const hotels = ref([]);
             const exchangeRate = ref(0.052);
+            const fetchRate = async () => {
+                try {
+                    // 使用免費 API 抓取 1 日圓 (JPY) 對換多少港幣 (HKD)
+                    const res = await fetch('https://open.er-api.com/v6/latest/JPY');
+                    const data = await res.json();
+                    
+                    if (data && data.rates && data.rates.HKD) {
+                        exchangeRate.value = data.rates.HKD;
+                        console.log("已更新即時匯率:", exchangeRate.value);
+                    }
+                } catch (e) {
+                    console.error("匯率更新失敗，使用預設值", e);
+                }
+            };
             
             // UI State
             const exchangeInput = ref(1000);
@@ -481,6 +495,7 @@
             // 初始化與監聽
             onMounted(() => {
                 fetchWeather();
+                fetchRate(); // <--- 加入這一行，一開啟 App 就抓匯率
                 
                 // 監聽登入狀態改變
                 onAuthStateChanged(auth, (currentUser) => {
