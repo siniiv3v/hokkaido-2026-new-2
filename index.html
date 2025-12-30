@@ -60,7 +60,23 @@
 <body class="h-screen flex flex-col overflow-hidden text-muji-text">
 
 <div id="app" v-cloak class="flex flex-col h-full relative">
-
+<!-- ====== 新增：登入遮罩 (沒登入時顯示) ====== -->
+    <div v-if="!user" class="fixed inset-0 z-[100] bg-[#F9F9F7] flex flex-col items-center justify-center p-6 text-center fade-in">
+        <div class="mb-8 relative">
+            <i class="fa-regular fa-snowflake text-6xl text-muji-accent animate-pulse"></i>
+            <i class="fa-solid fa-plane absolute -bottom-2 -right-2 text-2xl text-stone-400"></i>
+        </div>
+        <h1 class="text-2xl font-bold text-muji-text mb-2 tracking-widest">HOKKAIDO TRIP</h1>
+        <p class="text-stone-400 text-sm mb-10">請登入以同步行程資料</p>
+        
+        <button @click="login" class="bg-white border border-stone-200 shadow-float px-8 py-4 rounded-[1.5rem] flex items-center gap-3 active:scale-95 transition-transform hover:border-muji-accent">
+            <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" class="w-6 h-6">
+            <span class="font-bold text-stone-600">使用 Google 登入</span>
+        </button>
+        <p class="mt-8 text-[10px] text-stone-300">安全連線由 Google Firebase 提供</p>
+    </div>
+    <!-- =========================================== --> 
+    
     <!-- Header -->
     <header class="glass z-30 pt-safe-top border-b border-stone-200/50 absolute top-0 w-full shadow-sm flex flex-col">
         <div class="h-12 flex items-center justify-center shrink-0 relative">
@@ -375,33 +391,31 @@
 <script type="module">
     import { createApp, ref, computed, reactive, onMounted, watch } from 'https://unpkg.com/vue@3/dist/vue.esm-browser.js';
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+    // 新增：引入 Authentication 相關功能
+    import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
     import { getDatabase, ref as dbRef, set, onValue } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
     
     const firebaseConfig = {
-         apiKey: "AIzaSyD0FLDk9GqIUK2Kx7UzAYi5U6Dzs4QWrDw",
-         authDomain: "sini-3e19d.firebaseapp.com",
-         projectId: "sini-3e19d",
-         storageBucket: "sini-3e19d.firebasestorage.app",
-         messagingSenderId: "327933716448",
-         appId: "1:327933716448:web:a964cf7e9da04b9bf66d85"
-
+    apiKey: "AIzaSyD0FLDk9GqIUK2Kx7UzAYi5U6Dzs4QWrDw",
+    authDomain: "sini-3e19d.firebaseapp.com",
+    projectId: "sini-3e19d",
+    storageBucket: "sini-3e19d.firebasestorage.app",
+    messagingSenderId: "327933716448",
+    appId: "1:327933716448:web:a964cf7e9da04b9bf66d85"
     };
 
     // 初始化 Firebase
-    let db;
-    try {
-        const app = initializeApp(firebaseConfig);
-        db = getDatabase(app);
-    } catch (e) {
-        console.error("Firebase 初始化失敗，請檢查 Config", e);
-    }
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+    const auth = getAuth(app); // 初始化驗證服務
 
     createApp({
         setup() {
             // State
+            const user = ref(null); // 使用者狀態
             const currentTab = ref('info');
-            const syncStatus = ref('offline'); // offline, online, saving
+            const syncStatus = ref('offline');
             const syncStatusClass = computed(() => ({
                 'sync-offline': syncStatus.value === 'offline',
                 'sync-online': syncStatus.value === 'online',
@@ -427,19 +441,19 @@
             const hotels = ref([]);
             const exchangeRate = ref(0.052);
             
-            // UI State (Non-synced)
+            // UI State
             const exchangeInput = ref(1000);
             const currDayIdx = ref(0);
             const planType = ref('todo');
             
-            // Weather (API Only)
+            // Weather
             const weather = ref({ 
                 lastUpdate: '-',
                 current: { temp: 0, feelsLike: 0, desc: 'Loading', icon: 'fa-solid fa-spinner fa-spin' },
                 forecast: [{ date: 'D1', max: 0, min: 0, icon: 'fa-solid fa-cloud' },{ date: 'D2', max: 0, min: 0, icon: 'fa-solid fa-cloud' },{ date: 'D3', max: 0, min: 0, icon: 'fa-solid fa-cloud' }]
             });
 
-            // Forms
+            // Forms (省略詳細定義以節省空間，保持原樣)
             const showMemberModal = ref(false); const newMemberName = ref('');
             const showHotelModal = ref(false); const hotelForm = reactive({ id:null, name:'', address:'', checkIn:'15:00', checkOut:'11:00', price:'', image:'' });
             const showItemModal = ref(false); const itemFormType = ref('shopping'); const itemForm = reactive({name:'', price:'', note:'', image:''});
@@ -447,20 +461,45 @@
             const showEventModal = ref(false); const eventForm = reactive({id:null, name:'', time:'10:00', category:'spot', ticket:'', note:'', nextTravelTime:'15 min'}); const isEditing = ref(false);
 
             // ==========================================
-            // 2. Firebase 同步邏輯 (取代 localStorage)
+            // 2. Firebase Auth & Sync
             // ==========================================
-            const tripId = 'hokkaido_trip2026'; 
+            const tripId = 'my_hokkaido_trip_v1'; 
             const dbPath = dbRef(db, 'trips/' + tripId);
             let isReceivingUpdate = false;
 
+            // 登入功能
+            const login = () => {
+                const provider = new GoogleAuthProvider();
+                signInWithPopup(auth, provider).catch((error) => {
+                    alert("登入失敗: " + error.message);
+                });
+            };
+
+            // 登出功能 (可選，如果你想做登出按鈕)
+            const logout = () => signOut(auth);
+
+            // 初始化與監聽
             onMounted(() => {
                 fetchWeather();
                 
-                // 監聽雲端資料變更
+                // 監聽登入狀態改變
+                onAuthStateChanged(auth, (currentUser) => {
+                    user.value = currentUser;
+                    if (currentUser) {
+                        // 登入成功，開始同步資料
+                        initDataSync();
+                    } else {
+                        // 沒登入，狀態設為離線
+                        syncStatus.value = 'offline';
+                    }
+                });
+            });
+
+            const initDataSync = () => {
                 onValue(dbPath, (snapshot) => {
                     const data = snapshot.val();
                     if (data) {
-                        isReceivingUpdate = true; // 鎖定，避免寫入迴圈
+                        isReceivingUpdate = true;
                         members.value = data.members || [{name:'我', avatar:''}];
                         todoList.value = data.todoList || [];
                         shoppingList.value = data.shoppingList || [];
@@ -469,25 +508,24 @@
                         expenses.value = data.expenses || [];
                         flights.value = data.flights || [];
                         hotels.value = data.hotels || [];
-                        // 確保至少有一筆資料
                         if(flights.value.length === 0) flights.value.push({type:'去程', depCode:'HKG', arrCode:'CTS', depTime:'09:00', arrTime:'14:30', duration:'5h30m'});
                         
                         setTimeout(() => isReceivingUpdate = false, 100);
                         syncStatus.value = 'online';
                     } else {
-                        // 若雲端沒資料 (第一次使用)，自動初始化
-                        saveToFirebase(); 
+                        saveToFirebase(); // 初始化新資料
                     }
                 }, (error) => {
-                    console.error(error);
+                    console.error("讀取失敗 (權限不足或網路問題)", error);
                     syncStatus.value = 'offline';
                 });
-            });
+            };
 
-            // 寫入資料庫 (Debounce 防抖動，避免過度寫入)
+            // 寫入資料庫
             let saveTimeout;
             const saveToFirebase = () => {
-                if(isReceivingUpdate) return;
+                // 如果沒登入或正在接收更新，不存檔
+                if(!user.value || isReceivingUpdate) return;
                 
                 syncStatus.value = 'saving';
                 clearTimeout(saveTimeout);
@@ -502,22 +540,23 @@
                         expenses: expenses.value,
                         flights: flights.value,
                         hotels: hotels.value,
-                        lastModified: Date.now()
+                        lastModified: Date.now(),
+                        updatedBy: user.value.displayName // 紀錄最後更新者
                     }).then(() => {
                         syncStatus.value = 'online';
                     }).catch(err => {
-                        console.error(err);
+                        console.error("存檔失敗", err);
                         syncStatus.value = 'offline';
                     });
-                }, 1000); // 延遲 1 秒存檔
+                }, 1000);
             };
 
-            // 監聽所有資料變動
+            // 監聽變更
             watch([members, todoList, shoppingList, wishlist, itinerary, expenses, flights, hotels], () => {
                 saveToFirebase();
             }, { deep: true });
 
-            // Weather Logic (Open-Meteo)
+            // (以下保持原本的 Weather Fetch 和 Actions 邏輯，不變)
             const getWmoIcon = (code) => {
                 if ([0, 1].includes(code)) return 'fa-solid fa-sun text-yellow-400';
                 if ([2, 3].includes(code)) return 'fa-solid fa-cloud-sun text-white';
@@ -530,7 +569,7 @@
                     const res = await fetch('https://api.open-meteo.com/v1/forecast?latitude=43.0618&longitude=141.3545&current=temperature_2m,apparent_temperature,weather_code&daily=weather_code,temperature_2m_max,temperature_2m_min&timezone=auto&forecast_days=4');
                     const data = await res.json();
                     if(!data.current) return;
-                  weather.value.current = {
+                    weather.value.current = {
                         temp: Math.round(data.current.temperature_2m),
                         feelsLike: Math.round(data.current.apparent_temperature),
                         desc: '札幌',
@@ -544,7 +583,7 @@
                 } catch (e) { console.error(e); }
             };
 
-            // Actions (Simplified for brevity, same logic)
+            // Simplified Actions
             const addFlight = () => flights.value.push({type:'回程', depCode:'CTS', arrCode:'HKG', depTime:'16:00', arrTime:'20:30', duration:'5h30m'});
             const deleteFlight = (idx) => flights.value.splice(idx,1);
             const openHotelModal = (isEdit, d=null) => { if(isEdit&&d) Object.assign(hotelForm, d); else Object.assign(hotelForm, { id:null, name:'', address:'', checkIn:'15:00', checkOut:'11:00', price:'', image:'' }); showHotelModal.value = true; };
@@ -579,6 +618,7 @@
             const getCatIcon = (c) => ({'food':'fa-utensils','transport':'fa-train','shopping':'fa-bag-shopping','hotel':'fa-bed'}[c]||'fa-star');
 
             return {
+                user, login, // 新增 return
                 currentTab, tabs, syncStatusClass, weather,
                 members, newMemberName, addMember, deleteMember, updateMemberAvatar, showMemberModal,
                 exchangeRate, exchangeInput, flights, addFlight, deleteFlight,
