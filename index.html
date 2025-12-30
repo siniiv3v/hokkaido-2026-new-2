@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
@@ -84,43 +83,65 @@
         <!-- ===== 1. 資訊 (Info) ===== -->
         <div v-if="currentTab === 'info'" class="fade-in space-y-6 pb-20">
             
-            <!-- 天氣與匯率 -->
+            <!-- 天氣與匯率區域 -->
             <div class="grid grid-cols-2 gap-4">
-                <!-- 天氣卡片 (升級版) -->
-                <div @click="toggleWeather" class="bg-gradient-to-br from-[#A5B4C4] to-[#8DA3C1] rounded-[2rem] p-5 text-white shadow-soft relative overflow-hidden group cursor-pointer active:scale-95 transition-transform">
-                    <div class="relative z-10 flex flex-col h-full justify-between">
-                        <div class="flex justify-between items-start">
-                            <p class="text-[10px] font-medium opacity-80 uppercase tracking-widest">Weather</p>
-                            <i :class="weatherIcon" class="text-2xl animate-pulse"></i>
-                        </div>
+                
+                <!-- 天氣卡片 (升級版：橫跨兩欄，顯示即時+3日預報) -->
+                <div class="col-span-2 bg-gradient-to-br from-[#A5B4C4] to-[#7990B0] rounded-[2rem] p-5 text-white shadow-soft relative overflow-hidden group">
+                    
+                    <!-- 上半部：即時天氣 -->
+                    <div class="relative z-10 flex justify-between items-start mb-4">
                         <div>
-                            <h3 class="text-4xl font-bold -ml-1">{{ weather.temp }}°</h3>
-                            <div class="flex items-center gap-1 mt-1 opacity-90 text-[10px]">
-                                <i class="fa-solid fa-temperature-half"></i> 
-                                <span>體感 {{ weather.feelsLike }}°</span>
+                            <p class="text-[10px] font-medium opacity-80 uppercase tracking-widest mb-1"><i class="fa-solid fa-location-dot mr-1"></i>Sapporo</p>
+                            <h3 class="text-5xl font-bold tracking-tight">{{ weather.current.temp }}<span class="text-2xl align-top">°</span></h3>
+                            <div class="flex items-center gap-2 mt-1 opacity-90 text-xs">
+                                <span class="capitalize">{{ weather.current.desc }}</span>
+                                <span class="w-1 h-1 bg-white rounded-full opacity-50"></span>
+                                <span>體感 {{ weather.current.feelsLike }}°</span>
+                            </div>
+                        </div>
+                        <div class="text-right">
+                             <i :class="weather.current.icon" class="text-5xl drop-shadow-md opacity-90"></i>
+                             <p class="text-[10px] mt-2 opacity-70">更新於 {{ weather.lastUpdate }}</p>
+                        </div>
+                    </div>
+
+                    <!-- 分隔線 -->
+                    <div class="w-full h-px bg-white/20 mb-3"></div>
+
+                    <!-- 下半部：3日預報 (橫向) -->
+                    <div class="relative z-10 grid grid-cols-3 gap-2">
+                        <div v-for="(day, idx) in weather.forecast" :key="idx" class="flex flex-col items-center justify-between p-2 rounded-xl bg-white/10 backdrop-blur-sm border border-white/5">
+                            <span class="text-[10px] font-bold opacity-80">{{ day.date }}</span>
+                            <i :class="day.icon" class="text-xl my-1.5 opacity-90"></i>
+                            <div class="flex gap-1 text-[10px] font-bold">
+                                <span class="opacity-100">{{ day.max }}°</span>
+                                <span class="opacity-60">{{ day.min }}°</span>
                             </div>
                         </div>
                     </div>
+                    
                     <!-- 背景裝飾 -->
-                    <i :class="weatherIcon" class="absolute -bottom-6 -right-6 text-[7rem] opacity-10 rotate-12"></i>
+                    <i :class="weather.current.icon" class="absolute -top-6 -right-6 text-[10rem] opacity-5 rotate-12 z-0"></i>
                 </div>
 
-                <!-- 匯率 -->
-                <div class="bg-white rounded-[2rem] p-5 shadow-soft relative border border-stone-50 flex flex-col justify-between">
+                <!-- 匯率 (調整為跨欄以配合排版，或者保持原樣) -->
+                <div class="col-span-2 bg-white rounded-[2rem] p-5 shadow-soft relative border border-stone-50 flex items-center justify-between">
                     <div>
                         <p class="text-[10px] text-stone-400 font-bold uppercase tracking-widest">Rate (HKD)</p>
-                        <div class="flex items-baseline mt-1 border-b border-stone-100 pb-1">
-                            <span class="text-stone-300 text-sm mr-1">¥</span>
-                            <input type="number" v-model="exchangeInput" class="w-full bg-transparent font-bold text-xl text-stone-700 placeholder-stone-200">
+                        <div class="flex items-baseline mt-1">
+                            <span class="text-stone-300 text-sm mr-2">¥</span>
+                            <input type="number" v-model="exchangeInput" class="w-24 bg-transparent font-bold text-2xl text-stone-700 placeholder-stone-200 border-b border-stone-100 focus:border-muji-accent transition-colors pb-1">
                         </div>
                     </div>
-                    <div class="text-right mt-2">
-                        <span class="block text-2xl font-bold text-stone-700">${{ (exchangeInput * exchangeRate).toFixed(1) }}</span>
+                    <div class="text-right">
+                        <span class="block text-3xl font-bold text-stone-700">${{ (exchangeInput * exchangeRate).toFixed(1) }}</span>
+                        <span class="text-[10px] text-stone-400">匯率 {{ exchangeRate }}</span>
                     </div>
                 </div>
             </div>
 
-            <!-- 住宿資訊 (新增功能) -->
+            <!-- 住宿資訊 -->
             <div class="space-y-4">
                 <div class="flex justify-between items-end px-1">
                     <h2 class="text-sm font-bold text-muji-text border-l-4 border-muji-accent pl-2">住宿安排</h2>
@@ -132,7 +153,6 @@
                 </div>
 
                 <div v-for="(hotel, idx) in hotels" :key="hotel.id" @click="openHotelModal(true, hotel)" class="bg-white rounded-[2rem] shadow-soft overflow-hidden group active:scale-[0.99] transition-transform cursor-pointer">
-                    <!-- 圖片區 -->
                     <div class="h-32 bg-stone-200 relative">
                         <img v-if="hotel.image" :src="hotel.image" class="w-full h-full object-cover">
                         <div v-else class="w-full h-full flex items-center justify-center text-stone-400 flex-col">
@@ -143,7 +163,6 @@
                             ¥ {{ Number(hotel.price).toLocaleString() }} <span class="text-[10px] text-stone-400 font-normal">/總價</span>
                         </div>
                     </div>
-                    <!-- 資訊區 -->
                     <div class="p-5">
                         <h3 class="font-bold text-lg text-muji-text leading-tight mb-1">{{ hotel.name }}</h3>
                         <p class="text-xs text-stone-400 mb-3"><i class="fa-solid fa-map-pin mr-1 text-muji-accent"></i>{{ hotel.address || '未填寫地址' }}</p>
@@ -160,7 +179,6 @@
                             </div>
                         </div>
 
-                        <!-- 分攤金額計算 -->
                         <div class="flex items-center justify-between border-t border-stone-100 pt-3">
                             <span class="text-xs text-stone-400 font-bold">每人分攤 ({{ members.length }}人)</span>
                             <span class="text-lg font-bold text-muji-text">¥ {{ (hotel.price / (members.length || 1)).toLocaleString(undefined, {maximumFractionDigits:0}) }}</span>
@@ -408,7 +426,7 @@
         </div>
     </div>
 
-    <!-- Hotel Modal (新增住宿彈窗) -->
+    <!-- Hotel Modal -->
     <div v-if="showHotelModal" class="fixed inset-0 z-[60] flex items-end justify-center bg-stone-900/30 backdrop-blur-sm" @click.self="showHotelModal=false">
         <div class="bg-white w-full rounded-t-[2rem] p-6 slide-up pb-safe-bottom">
             <h3 class="text-center font-bold text-lg mb-6">{{ hotelForm.id ? '編輯住宿' : '新增住宿' }}</h3>
@@ -464,20 +482,68 @@
                 { id: 'members', name: '成員', icon: 'fa-solid fa-user-group' }
             ];
 
-            // Info - Weather
-            const weather = ref({ condition: 'snow', temp: -2, feelsLike: -6 }); // conditions: sun, cloud, rain, snow
-            const weatherIcon = computed(() => {
-                const map = { 'sun': 'fa-solid fa-sun text-yellow-400', 'cloud': 'fa-solid fa-cloud text-gray-200', 'rain': 'fa-solid fa-cloud-rain text-blue-300', 'snow': 'fa-regular fa-snowflake' };
-                return map[weather.value.condition] || map['snow'];
+            // Info - Weather (API Integrated)
+            // 預設結構，等待 API 覆蓋
+            const weather = ref({ 
+                lastUpdate: '-',
+                current: { temp: 0, feelsLike: 0, desc: 'Loading', icon: 'fa-solid fa-spinner fa-spin' },
+                forecast: [
+                    { date: 'Day 1', max: 0, min: 0, icon: 'fa-solid fa-cloud' },
+                    { date: 'Day 2', max: 0, min: 0, icon: 'fa-solid fa-cloud' },
+                    { date: 'Day 3', max: 0, min: 0, icon: 'fa-solid fa-cloud' }
+                ]
             });
-            const toggleWeather = () => {
-                const types = ['sun', 'cloud', 'rain', 'snow'];
-                const next = types[(types.indexOf(weather.value.condition) + 1) % types.length];
-                weather.value.condition = next;
-                // 模擬溫度變化
-                if(next==='sun') { weather.value.temp=2; weather.value.feelsLike=0; }
-                else if(next==='snow') { weather.value.temp=-2; weather.value.feelsLike=-6; }
-                else { weather.value.temp=0; weather.value.feelsLike=-3; }
+
+            const getWmoIcon = (code) => {
+                // WMO Weather Codes to FontAwesome
+                if ([0, 1].includes(code)) return 'fa-solid fa-sun text-yellow-400';
+                if ([2, 3].includes(code)) return 'fa-solid fa-cloud-sun text-white';
+                if ([45, 48].includes(code)) return 'fa-solid fa-smog text-stone-300';
+                if ([51, 53, 55, 61, 63, 65, 80, 81, 82].includes(code)) return 'fa-solid fa-cloud-rain text-blue-300';
+                if ([71, 73, 75, 77, 85, 86].includes(code)) return 'fa-regular fa-snowflake text-white animate-pulse'; // Snow
+                return 'fa-solid fa-cloud text-gray-200';
+            };
+
+            const getWmoDesc = (code) => {
+                const map = { 0:'晴天', 1:'多雲', 2:'陰天', 3:'陰天', 45:'霧', 61:'雨', 71:'雪', 73:'中雪', 75:'大雪' };
+                return map[code] || '陰天';
+            };
+
+            const fetchWeather = async () => {
+                try {
+                    // Open-Meteo API (Sapporo Coordinates: 43.0618, 141.3545)
+                    const res = await fetch('https://api.open-meteo.com/v1/forecast?latitude=43.0618&longitude=141.3545&current=temperature_2m,apparent_temperature,weather_code&daily=weather_code,temperature_2m_max,temperature_2m_min&timezone=auto&forecast_days=4');
+                    const data = await res.json();
+                    
+                    if(!data.current) return;
+
+                    // Update Current
+                    weather.value.current = {
+                        temp: Math.round(data.current.temperature_2m),
+                        feelsLike: Math.round(data.current.apparent_temperature),
+                        desc: getWmoDesc(data.current.weather_code),
+                        icon: getWmoIcon(data.current.weather_code)
+                    };
+
+                    // Update Forecast (Next 3 days, skipping today index 0 usually, but logic below takes index 1,2,3)
+                    weather.value.forecast = data.daily.time.slice(1, 4).map((time, index) => {
+                        const i = index + 1; // get next days
+                        const d = new Date(time);
+                        return {
+                            date: `${d.getMonth()+1}/${d.getDate()}`,
+                            max: Math.round(data.daily.temperature_2m_max[i]),
+                            min: Math.round(data.daily.temperature_2m_min[i]),
+                            icon: getWmoIcon(data.daily.weather_code[i])
+                        };
+                    });
+                    
+                    const now = new Date();
+                    weather.value.lastUpdate = `${now.getHours()}:${String(now.getMinutes()).padStart(2,'0')}`;
+
+                } catch (e) {
+                    console.error("Weather fetch failed", e);
+                    weather.value.current.desc = "Offline";
+                }
             };
 
             // Info - Basic
@@ -485,7 +551,7 @@
             const exchangeInput = ref(1000);
             const flights = ref([]);
             
-            // Info - Hotels (New)
+            // Info - Hotels
             const hotels = ref([]);
             const showHotelModal = ref(false);
             const hotelForm = reactive({ id:null, name:'', address:'', checkIn:'15:00', checkOut:'11:00', price:'', image:'' });
@@ -522,7 +588,7 @@
 
             // Init & Persist
             onMounted(() => {
-                const saved = localStorage.getItem('hokkaido_v6'); // Update version key
+                const saved = localStorage.getItem('hokkaido_v7'); // Version bumped
                 if(saved) {
                     const data = JSON.parse(saved);
                     members.value = data.members || members.value;
@@ -533,16 +599,19 @@
                     expenses.value = data.expenses || [];
                     flights.value = data.flights || [];
                     hotels.value = data.hotels || [];
-                    if(data.weather) weather.value = data.weather;
+                    // Weather is not loaded from local storage to force update
                 }
                 if(flights.value.length===0) flights.value.push({type:'去程', depCode:'HKG', arrCode:'CTS', depTime:'09:00', arrTime:'14:30', duration:'5h30m'});
+                
+                // Fetch Weather on load
+                fetchWeather();
             });
 
-            watch([members, todoList, shoppingList, wishlist, itinerary, expenses, flights, hotels, weather], () => {
-                localStorage.setItem('hokkaido_v6', JSON.stringify({
+            watch([members, todoList, shoppingList, wishlist, itinerary, expenses, flights, hotels], () => {
+                localStorage.setItem('hokkaido_v7', JSON.stringify({
                     members: members.value, todoList: todoList.value, shoppingList: shoppingList.value, wishlist: wishlist.value,
                     itinerary: itinerary.value, expenses: expenses.value, flights: flights.value,
-                    hotels: hotels.value, weather: weather.value
+                    hotels: hotels.value
                 }));
             }, { deep: true });
 
@@ -657,8 +726,8 @@
             return {
                 currentTab, tabs, members, newMemberName, addMember, deleteMember, updateMemberAvatar, showMemberModal,
                 exchangeRate, exchangeInput, flights, addFlight, deleteFlight,
-                weather, weatherIcon, toggleWeather, // New Weather
-                hotels, showHotelModal, hotelForm, openHotelModal, handleHotelImg, saveHotel, deleteHotel, // New Hotels
+                weather, fetchWeather, // New Weather
+                hotels, showHotelModal, hotelForm, openHotelModal, handleHotelImg, saveHotel, deleteHotel, 
                 planType, todoList, addTodo, deleteTodo, shoppingList, wishlist, openItemModal, showItemModal, itemForm, itemFormType, handleItemImg, saveItem, deleteShopping, deleteWishlist,
                 itinerary, currDayIdx, currentEvents, addDay, getDayDate, openEventModal, showEventModal, eventForm, saveEvent, editEvent, isEditing, deleteEvent, openMap, translateCat,
                 expenses, showExpModal, expForm, openExpenseModal, saveExpense, deleteExpense, totalExpense, totalByMethod, getCatColor, getCatIcon
