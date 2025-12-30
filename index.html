@@ -555,13 +555,14 @@
 
 <!-- Firebase SDK -->
 <script type="module">
-    import { createApp, ref, computed, reactive, onMounted, watch } from 'https://unpkg.com/vue@3/dist/vue.esm-browser.js';
+    import { createApp, ref, computed, reactive, onMounted, watch, nextTick } from 'https://unpkg.com/vue@3/dist/vue.esm-browser.js';
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-    // 新增：引入 Authentication 相關功能
     import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
     import { getDatabase, ref as dbRef, set, onValue } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
-    
+    // ==========================================
+    // 1. 請在此處填入您的 Firebase Key
+    // ==========================================
     const firebaseConfig = {
     apiKey: "AIzaSyD0FLDk9GqIUK2Kx7UzAYi5U6Dzs4QWrDw",
     authDomain: "sini-3e19d.firebaseapp.com",
@@ -574,12 +575,14 @@
     // 初始化 Firebase
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
-    const auth = getAuth(app); // 初始化驗證服務
+    const auth = getAuth(app);
 
     createApp({
         setup() {
-            // State
-            const user = ref(null); // 使用者狀態
+            // User & Auth
+            const user = ref(null);
+            
+            // App State
             const currentTab = ref('info');
             const syncStatus = ref('offline');
             const syncStatusClass = computed(() => ({
@@ -605,139 +608,30 @@
             const expenses = ref([]);
             const flights = ref([{type:'去程', depCode:'HKG', arrCode:'CTS', depTime:'09:00', arrTime:'14:30', duration:'5h30m'}]);
             const hotels = ref([]);
+            
+            // 匯率 Logic
             const exchangeRate = ref(0.052);
             const fetchRate = async () => {
                 try {
-                    // 使用免費 API 抓取 1 日圓 (JPY) 對換多少港幣 (HKD)
                     const res = await fetch('https://open.er-api.com/v6/latest/JPY');
                     const data = await res.json();
-                    
                     if (data && data.rates && data.rates.HKD) {
                         exchangeRate.value = data.rates.HKD;
-                        console.log("已更新即時匯率:", exchangeRate.value);
                     }
-                } catch (e) {
-                    console.error("匯率更新失敗，使用預設值", e);
-                }
+                } catch (e) { console.error("匯率更新失敗", e); }
             };
-            
+
             // UI State
             const exchangeInput = ref(1000);
             const currDayIdx = ref(0);
             const planType = ref('todo');
             
-            // Weather
+            // Weather Logic
             const weather = ref({ 
                 lastUpdate: '-',
                 current: { temp: 0, feelsLike: 0, desc: 'Loading', icon: 'fa-solid fa-spinner fa-spin' },
                 forecast: [{ date: 'D1', max: 0, min: 0, icon: 'fa-solid fa-cloud' },{ date: 'D2', max: 0, min: 0, icon: 'fa-solid fa-cloud' },{ date: 'D3', max: 0, min: 0, icon: 'fa-solid fa-cloud' }]
             });
-
-            // Forms (省略詳細定義以節省空間，保持原樣)
-            const showMemberModal = ref(false); const newMemberName = ref('');
-            const showHotelModal = ref(false); const hotelForm = reactive({ id:null, name:'', address:'', checkIn:'15:00', checkOut:'11:00', price:'', image:'' });
-            const showItemModal = ref(false); const itemFormType = ref('shopping'); const itemForm = reactive({name:'', price:'', note:'', image:''});
-            const showExpModal = ref(false); const expForm = reactive({amount:'', title:'', payer:'我', method:'cash', isPublic:true, category:'food'});
-            const showEventModal = ref(false); const eventForm = reactive({id:null, name:'', time:'10:00', category:'spot', ticket:'', note:'', nextTravelTime:'15 min'}); const isEditing = ref(false);
-
-            // ==========================================
-            // 2. Firebase Auth & Sync
-            // ==========================================
-            const tripId = 'my_hokkaido_trip_v1'; 
-            const dbPath = dbRef(db, 'trips/' + tripId);
-            let isReceivingUpdate = false;
-
-            // 登入功能
-            const login = () => {
-                const provider = new GoogleAuthProvider();
-                signInWithPopup(auth, provider).catch((error) => {
-                    alert("登入失敗: " + error.message);
-                });
-            };
-
-            // 登出功能 (可選，如果你想做登出按鈕)
-            const logout = () => signOut(auth);
-
-            // 初始化與監聽
-            onMounted(() => {
-                fetchWeather();
-                fetchRate(); // <--- 加入這一行，一開啟 App 就抓匯率
-                
-                // 監聽登入狀態改變
-                onAuthStateChanged(auth, (currentUser) => {
-                    user.value = currentUser;
-                    if (currentUser) {
-                        // 登入成功，開始同步資料
-                        initDataSync();
-                    } else {
-                        // 沒登入，狀態設為離線
-                        syncStatus.value = 'offline';
-                    }
-                });
-            });
-
-            const initDataSync = () => {
-                onValue(dbPath, (snapshot) => {
-                    const data = snapshot.val();
-                    if (data) {
-                        isReceivingUpdate = true;
-                        members.value = data.members || [{name:'我', avatar:''}];
-                        todoList.value = data.todoList || [];
-                        shoppingList.value = data.shoppingList || [];
-                        wishlist.value = data.wishlist || [];
-                        itinerary.value = data.itinerary || [{date:'2025-01-23', events:[]}];
-                        expenses.value = data.expenses || [];
-                        flights.value = data.flights || [];
-                        hotels.value = data.hotels || [];
-                        if(flights.value.length === 0) flights.value.push({type:'去程', depCode:'HKG', arrCode:'CTS', depTime:'09:00', arrTime:'14:30', duration:'5h30m'});
-                        
-                        setTimeout(() => isReceivingUpdate = false, 100);
-                        syncStatus.value = 'online';
-                    } else {
-                        saveToFirebase(); // 初始化新資料
-                    }
-                }, (error) => {
-                    console.error("讀取失敗 (權限不足或網路問題)", error);
-                    syncStatus.value = 'offline';
-                });
-            };
-
-            // 寫入資料庫
-            let saveTimeout;
-            const saveToFirebase = () => {
-                // 如果沒登入或正在接收更新，不存檔
-                if(!user.value || isReceivingUpdate) return;
-                
-                syncStatus.value = 'saving';
-                clearTimeout(saveTimeout);
-                
-                saveTimeout = setTimeout(() => {
-                    set(dbPath, {
-                        members: members.value,
-                        todoList: todoList.value,
-                        shoppingList: shoppingList.value,
-                        wishlist: wishlist.value,
-                        itinerary: itinerary.value,
-                        expenses: expenses.value,
-                        flights: flights.value,
-                        hotels: hotels.value,
-                        lastModified: Date.now(),
-                        updatedBy: user.value.displayName // 紀錄最後更新者
-                    }).then(() => {
-                        syncStatus.value = 'online';
-                    }).catch(err => {
-                        console.error("存檔失敗", err);
-                        syncStatus.value = 'offline';
-                    });
-                }, 1000);
-            };
-
-            // 監聽變更
-            watch([members, todoList, shoppingList, wishlist, itinerary, expenses, flights, hotels], () => {
-                saveToFirebase();
-            }, { deep: true });
-
-            // (以下保持原本的 Weather Fetch 和 Actions 邏輯，不變)
             const getWmoIcon = (code) => {
                 if ([0, 1].includes(code)) return 'fa-solid fa-sun text-yellow-400';
                 if ([2, 3].includes(code)) return 'fa-solid fa-cloud-sun text-white';
@@ -764,7 +658,250 @@
                 } catch (e) { console.error(e); }
             };
 
-            // Simplified Actions
+            // Forms
+            const showMemberModal = ref(false); const newMemberName = ref('');
+            const showHotelModal = ref(false); const hotelForm = reactive({ id:null, name:'', address:'', checkIn:'15:00', checkOut:'11:00', price:'', image:'' });
+            const showItemModal = ref(false); const itemFormType = ref('shopping'); const itemForm = reactive({name:'', price:'', note:'', image:''});
+            const showExpModal = ref(false); const expForm = reactive({amount:'', title:'', payer:'我', method:'cash', isPublic:true, category:'food'});
+            
+            // ===== 新版行程表單 =====
+            const showEventModal = ref(false); 
+            const isEditing = ref(false);
+            const eventForm = reactive({
+                id: null, 
+                name: '', 
+                time: '10:00', 
+                category: 'spot', // spot, food, shopping, hotel, transport, other
+                ticket: '', 
+                openTime: '', // 營業時間
+                note: '',
+                transportMode: 'transport', // transport, walk, car
+                travelTime: '' // 交通時間字串
+            });
+
+            // ==========================================
+            // Auth & Sync Logic
+            // ==========================================
+            const tripId = 'my_hokkaido_trip_v1';
+            const dbPath = dbRef(db, 'trips/' + tripId);
+            let isReceivingUpdate = false;
+
+            const login = () => {
+                const provider = new GoogleAuthProvider();
+                signInWithPopup(auth, provider).catch(err => alert("登入失敗: " + err.message));
+            };
+
+            onMounted(() => {
+                fetchWeather();
+                fetchRate();
+                
+                onAuthStateChanged(auth, (currentUser) => {
+                    user.value = currentUser;
+                    if (currentUser) initDataSync();
+                    else syncStatus.value = 'offline';
+                });
+            });
+
+            const initDataSync = () => {
+                onValue(dbPath, (snapshot) => {
+                    const data = snapshot.val();
+                    if (data) {
+                        isReceivingUpdate = true;
+                        members.value = data.members || [{name:'我', avatar:''}];
+                        todoList.value = data.todoList || [];
+                        shoppingList.value = data.shoppingList || [];
+                        wishlist.value = data.wishlist || [];
+                        // 修正：確保 itinerary 每一天都有 events 陣列，避免 undefined 錯誤
+                        itinerary.value = (data.itinerary || [{date:'2025-01-23', events:[]}]).map(day => ({
+                            ...day, events: day.events || []
+                        }));
+                        expenses.value = data.expenses || [];
+                        flights.value = data.flights || [];
+                        hotels.value = data.hotels || [];
+                        
+                        // 資料載入後，初始化拖曳功能
+                        setTimeout(() => {
+                            isReceivingUpdate = false;
+                            initSortable(); 
+                        }, 100);
+                        syncStatus.value = 'online';
+                    } else {
+                        saveToFirebase();
+                    }
+                }, (error) => {
+                    console.error(error);
+                    syncStatus.value = 'offline';
+                });
+            };
+
+            let saveTimeout;
+            const saveToFirebase = () => {
+                if(!user.value || isReceivingUpdate) return;
+                syncStatus.value = 'saving';
+                clearTimeout(saveTimeout);
+                saveTimeout = setTimeout(() => {
+                    set(dbPath, {
+                        members: members.value,
+                        todoList: todoList.value,
+                        shoppingList: shoppingList.value,
+                        wishlist: wishlist.value,
+                        itinerary: itinerary.value,
+                        expenses: expenses.value,
+                        flights: flights.value,
+                        hotels: hotels.value,
+                        lastModified: Date.now(),
+                        updatedBy: user.value.displayName
+                    }).then(() => syncStatus.value = 'online').catch(() => syncStatus.value = 'offline');
+                }, 1000);
+            };
+
+            watch([members, todoList, shoppingList, wishlist, itinerary, expenses, flights, hotels], () => {
+                saveToFirebase();
+            }, { deep: true });
+
+            // ==========================================
+            // 新功能：拖曳排序 (SortableJS)
+            // ==========================================
+            const initSortable = () => {
+                if(currentTab.value !== 'itinerary') return;
+                nextTick(() => {
+                    const el = document.getElementById('itinerary-list');
+                    if (el && !el._sortable) { 
+                        Sortable.create(el, {
+                            animation: 150,
+                            handle: '.group', // 整個區域可拖曳
+                            delay: 150,       // 防止手機上誤觸點擊
+                            delayOnTouchOnly: true,
+                            onEnd: (evt) => {
+                                const events = itinerary.value[currDayIdx.value].events;
+                                const item = events.splice(evt.oldIndex, 1)[0];
+                                events.splice(evt.newIndex, 0, item);
+                                saveToFirebase(); // 強制存檔
+                            }
+                        });
+                        el._sortable = true;
+                    }
+                });
+            };
+
+            watch(currentTab, (newTab) => {
+                if(newTab === 'itinerary') initSortable();
+            });
+
+            // ==========================================
+            // 新功能：日期與格式 Helper
+            // ==========================================
+            const getWeekName = (dateStr) => {
+                const days = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
+                return days[new Date(dateStr).getDay()];
+            };
+            const getDayDate = (d) => { 
+                const date = new Date(d); 
+                return `${date.getDate()}/${date.getMonth()+1}`; 
+            };
+            
+            // 取得前一晚住宿資訊 (用於計算第一段交通)
+            const previousNightHotel = computed(() => {
+                if (hotels.value.length === 0) return null;
+                // 這裡簡化邏輯：直接取最後一個加入的飯店，或者您可以改成比對日期
+                return hotels.value[hotels.value.length - 1]; 
+            });
+
+            // ==========================================
+            // 新功能：行程操作
+            // ==========================================
+            const currentEvents = computed(() => {
+                return itinerary.value[currDayIdx.value].events || [];
+            });
+
+            const openEventModal = () => { 
+                isEditing.value = false; 
+                Object.assign(eventForm, {
+                    id: Date.now(), name: '', time: '10:00', category: 'spot', 
+                    ticket: '', openTime: '', note: '', transportMode: 'transport', travelTime: ''
+                }); 
+                showEventModal.value = true; 
+            };
+
+            const editEvent = (evt) => { 
+                isEditing.value = true; 
+                Object.assign(eventForm, evt); 
+                showEventModal.value = true; 
+            };
+
+            const saveEvent = () => { 
+                const dayEvents = itinerary.value[currDayIdx.value].events;
+                if (!dayEvents) itinerary.value[currDayIdx.value].events = [];
+                
+                if (isEditing.value) { 
+                    const idx = dayEvents.findIndex(e => e.id === eventForm.id); 
+                    if (idx !== -1) dayEvents[idx] = { ...eventForm }; 
+                } else { 
+                    dayEvents.push({ ...eventForm }); 
+                }
+                showEventModal.value = false; 
+            };
+
+            const confirmDeleteEvent = () => {
+                if(confirm("確定要刪除這個行程嗎？")) {
+                    const dayEvents = itinerary.value[currDayIdx.value].events;
+                    const idx = dayEvents.findIndex(e => e.id === eventForm.id);
+                    if(idx !== -1) dayEvents.splice(idx, 1);
+                    showEventModal.value = false;
+                }
+            };
+
+            // 日期 CRUD
+            const addDay = () => {
+                const lastDate = itinerary.value[itinerary.value.length - 1].date;
+                const d = new Date(lastDate);
+                d.setDate(d.getDate() + 1);
+                itinerary.value.push({ date: d.toISOString().split('T')[0], events: [] });
+            };
+            const deleteDay = (idx) => {
+                if(itinerary.value.length <= 1) return alert("至少保留一天");
+                if(confirm(`刪除 Day ${idx+1} 及其所有行程？`)) itinerary.value.splice(idx, 1);
+            };
+            const editDayDate = (idx) => {
+                const newDate = prompt("修改日期 (YYYY-MM-DD)", itinerary.value[idx].date);
+                if(newDate) itinerary.value[idx].date = newDate;
+            };
+
+            // 交通與地圖
+            const editTransport = (idx, isFirst = false) => {
+                const evt = currentEvents.value[idx];
+                const modes = {'walk':'步行', 'car':'開車', 'transport':'大眾運輸'};
+                const currentMode = evt.transportMode || 'transport';
+                
+                // 簡易 Prompt 來輸入 (不使用 Modal 以保持輕量)
+                const time = prompt(`設定到「${evt.name}」的交通時間 (例如: 15 min)`, evt.travelTime || '');
+                if (time !== null) {
+                    let mode = prompt(`交通方式？輸入代碼：\nwalk (步行)\ncar (開車)\ntransport (大眾運輸)`, currentMode);
+                    if(!['walk','car','transport'].includes(mode)) mode = 'transport'; // 預設
+                    
+                    evt.travelTime = time;
+                    evt.transportMode = mode;
+                }
+            };
+            
+            const openMap = (q) => {
+                window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(q + ' 北海道')}`, '_blank');
+            };
+
+            const getTransportIcon = (mode) => {
+                return {
+                    'walk': 'fa-solid fa-person-walking',
+                    'car': 'fa-solid fa-car',
+                    'transport': 'fa-solid fa-train-subway'
+                }[mode] || 'fa-solid fa-arrow-right';
+            };
+
+            // UI Helpers
+            const translateCat = (c) => ({'spot':'景點','food':'美食','hotel':'住宿','shopping':'購物','transport':'交通','other':'其他'}[c]||c);
+            const getCatColor = (c) => ({'spot':'bg-blue-400', 'food':'bg-orange-400','transport':'bg-stone-500','shopping':'bg-pink-400','hotel':'bg-purple-400','other':'bg-gray-400'}[c]||'bg-stone-400');
+            const getCatIcon = (c) => ({'spot':'fa-camera','food':'fa-utensils','transport':'fa-train','shopping':'fa-bag-shopping','hotel':'fa-bed','other':'fa-star'}[c]||'fa-circle');
+
+            // Actions (Other Tabs)
             const addFlight = () => flights.value.push({type:'回程', depCode:'CTS', arrCode:'HKG', depTime:'16:00', arrTime:'20:30', duration:'5h30m'});
             const deleteFlight = (idx) => flights.value.splice(idx,1);
             const openHotelModal = (isEdit, d=null) => { if(isEdit&&d) Object.assign(hotelForm, d); else Object.assign(hotelForm, { id:null, name:'', address:'', checkIn:'15:00', checkOut:'11:00', price:'', image:'' }); showHotelModal.value = true; };
@@ -781,32 +918,27 @@
             const saveItem = () => { if(itemForm.name) { if(itemFormType.value==='shopping') shoppingList.value.push({...itemForm}); else wishlist.value.push({...itemForm}); showItemModal.value=false; }};
             const deleteShopping = (idx) => { if(confirm('刪除?')) shoppingList.value.splice(idx,1); };
             const deleteWishlist = (idx) => { if(confirm('刪除?')) wishlist.value.splice(idx,1); };
-            const currentEvents = computed(() => itinerary.value[currDayIdx.value].events.sort((a,b)=>a.time.localeCompare(b.time)));
-            const addDay = () => { const d = new Date(itinerary.value[itinerary.value.length-1].date); d.setDate(d.getDate()+1); itinerary.value.push({date:d.toISOString().split('T')[0], events:[]}); };
-            const getDayDate = (d) => { const date = new Date(d); return `${date.getMonth()+1}/${date.getDate()}`; };
-            const openEventModal = () => { isEditing.value=false; Object.assign(eventForm, {id:Date.now(), name:'', time:'10:00', category:'spot', ticket:'', note:'', nextTravelTime:'15 min'}); showEventModal.value=true; };
-            const editEvent = (evt) => { isEditing.value=true; Object.assign(eventForm, evt); showEventModal.value=true; };
-            const saveEvent = () => { const evts = itinerary.value[currDayIdx.value].events; if(isEditing.value) { const idx=evts.findIndex(e=>e.id===eventForm.id); if(idx!==-1) evts[idx]={...eventForm}; } else evts.push({...eventForm}); showEventModal.value=false; };
-            const deleteEvent = () => { const evts = itinerary.value[currDayIdx.value].events; const idx=evts.findIndex(e=>e.id===eventForm.id); evts.splice(idx,1); showEventModal.value=false; };
-            const openMap = (q) => window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(q+' 北海道')}`, '_blank');
-            const translateCat = (c) => ({'spot':'景點','food':'美食','hotel':'住宿','shopping':'購物','transport':'交通'}[c]||c);
             const openExpenseModal = () => { Object.assign(expForm, {amount:'', title:'', payer:members.value[0].name, method:'cash', isPublic:true, category:'food'}); showExpModal.value=true; };
             const saveExpense = () => { if(expForm.amount) { expenses.value.push({...expForm, amount:Number(expForm.amount)}); showExpModal.value=false; } };
             const deleteExpense = (idx) => { if(confirm('刪除?')) expenses.value.splice(idx,1); };
             const totalExpense = computed(() => expenses.value.reduce((acc, cur) => acc + cur.amount, 0));
             const totalByMethod = (m) => expenses.value.filter(e=>e.method===m).reduce((acc, cur) => acc + cur.amount, 0);
-            const getCatColor = (c) => ({'food':'bg-orange-400','transport':'bg-blue-400','shopping':'bg-pink-400','hotel':'bg-purple-400'}[c]||'bg-stone-400');
-            const getCatIcon = (c) => ({'food':'fa-utensils','transport':'fa-train','shopping':'fa-bag-shopping','hotel':'fa-bed'}[c]||'fa-star');
 
             return {
-                user, login, // 新增 return
+                user, login,
                 currentTab, tabs, syncStatusClass, weather,
                 members, newMemberName, addMember, deleteMember, updateMemberAvatar, showMemberModal,
                 exchangeRate, exchangeInput, flights, addFlight, deleteFlight,
                 hotels, showHotelModal, hotelForm, openHotelModal, handleHotelImg, saveHotel, deleteHotel,
                 planType, todoList, addTodo, deleteTodo, shoppingList, wishlist, openItemModal, showItemModal, itemForm, itemFormType, handleItemImg, saveItem, deleteShopping, deleteWishlist,
-                itinerary, currDayIdx, currentEvents, addDay, getDayDate, openEventModal, showEventModal, eventForm, saveEvent, editEvent, isEditing, deleteEvent, openMap, translateCat,
-                expenses, showExpModal, expForm, openExpenseModal, saveExpense, deleteExpense, totalExpense, totalByMethod, getCatColor, getCatIcon
+                
+                // 行程相關 Return
+                itinerary, currDayIdx, currentEvents, addDay, deleteDay, editDayDate, getWeekName, getDayDate,
+                openEventModal, showEventModal, eventForm, saveEvent, editEvent, isEditing, confirmDeleteEvent, 
+                openMap, translateCat, getCatColor, getCatIcon,
+                editTransport, getTransportIcon, previousNightHotel,
+
+                expenses, showExpModal, expForm, openExpenseModal, saveExpense, deleteExpense, totalExpense, totalByMethod
             };
         }
     }).mount('#app');
