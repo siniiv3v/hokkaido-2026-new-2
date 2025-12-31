@@ -891,9 +891,18 @@ mono: ['"Oswald"', 'monospace'] // 用於機場代碼
             let isReceivingUpdate = false;
 
             const login = () => {
-                const provider = new GoogleAuthProvider();
-                signInWithPopup(auth, provider).catch(err => alert("登入失敗: " + err.message));
-            };
+    console.log("嘗試登入中..."); // 確保按鈕有被觸發
+    const provider = new GoogleAuthProvider();
+    
+    // 嘗試登入
+    signInWithPopup(auth, provider)
+        .then((result) => {
+            console.log("登入成功!", result.user);
+        })
+        .catch((err) => {
+            console.error("登入錯誤詳細資訊:", err); // 在 Console 顯示完整錯誤
+            alert("登入失敗: " + err.message + "\n(請按 F12看 Console 詳細錯誤)");
+        });
 
             onMounted(() => {
                 fetchWeather();
