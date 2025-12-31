@@ -20,6 +20,8 @@
             theme: {
                 extend: {
                     fontFamily: { sans: ['"Zen Maru Gothic"', '"Noto Sans TC"', 'sans-serif'] },
+mono: ['"Oswald"', 'monospace'] // 用於機場代碼
+                    },
                     colors: {
                         muji: {
                             bg: '#F9F9F7',       // 米白背景
@@ -56,6 +58,14 @@
         .sync-online { background-color: #4ade80; box-shadow: 0 0 8px #4ade80; }
         .sync-offline { background-color: #ef4444; }
         .sync-saving { background-color: #fbbf24; animation: pulse 1s infinite; }
+
+/* 登機證鋸齒邊緣效果 */
+        .boarding-pass-notch {
+            background-image: radial-gradient(circle at center, #F9F9F7 10px, transparent 11px);
+            background-size: 20px 40px;
+            background-position: left center;
+            background-repeat: no-repeat;
+        }
     </style>
 </head>
 <body class="h-screen flex flex-col overflow-hidden text-muji-text">
@@ -182,18 +192,58 @@
                 </div>
             </div>
 
-             <!-- 航班 -->
-             <div class="bg-white rounded-[2rem] shadow-soft p-5 overflow-hidden relative">
-                 <h2 class="text-sm font-bold text-muji-text mb-3 border-l-4 border-stone-300 pl-2">航班資訊</h2>
-                 <div v-for="(flight, idx) in flights" :key="idx" class="flex justify-between items-center border-b border-stone-100 pb-3 last:border-0 last:pb-0 mb-3 last:mb-0">
-                     <div class="text-center"><span class="block text-xl font-bold">{{ flight.depCode }}</span><span class="text-[10px] text-stone-400">{{ flight.depTime }}</span></div>
-                     <i class="fa-solid fa-plane text-stone-300"></i>
-                     <div class="text-center"><span class="block text-xl font-bold">{{ flight.arrCode }}</span><span class="text-[10px] text-stone-400">{{ flight.arrTime }}</span></div>
-                     <button @click="deleteFlight(idx)" class="text-stone-200 hover:text-red-400 ml-2"><i class="fa-solid fa-trash"></i></button>
+           <!-- ======= 升級版：航班資訊 (登機證樣式) ======= -->
+             <div>
+                 <div class="flex justify-between items-end px-1 mb-3">
+                     <h2 class="text-sm font-bold text-muji-text border-l-4 border-stone-300 pl-2">航班資訊</h2>
+                     <button @click="openFlightModal()" class="text-xs text-stone-400 bg-white border border-stone-200 px-3 py-1.5 rounded-full shadow-sm active:scale-90 transition-transform"><i class="fa-solid fa-plus mr-1"></i>新增</button>
                  </div>
-                 <button @click="addFlight" class="w-full mt-2 py-2 text-xs text-stone-400 border border-dashed border-stone-200 rounded-xl hover:bg-stone-50">+ 新增航班</button>
+
+                 <div v-if="flights.length === 0" class="text-center py-8 bg-white/50 rounded-[2rem] border-2 border-dashed border-stone-200"><p class="text-xs text-stone-400">尚未新增航班</p></div>
+
+                 <div v-for="(flight, idx) in flights" :key="idx" 
+                      @click="openFlightModal(flight, idx)"
+                      class="bg-white rounded-[1.5rem] shadow-float overflow-hidden mb-4 relative group active:scale-[0.99] transition-transform cursor-pointer border border-stone-100/50">
+                     
+                     <!-- 頂部色條：區分去程/回程 -->
+                     <div :class="flight.type === '去程' ? 'bg-muji-accent/20 text-blue-800' : 'bg-orange-100 text-orange-800'" class="px-5 py-2 flex justify-between items-center">
+                         <div class="flex items-center gap-2">
+                             <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-white/60 backdrop-blur-sm">{{ flight.type }}</span>
+                             <span class="text-xs font-bold tracking-wider opacity-80">{{ flight.flightNo || '未設定編號' }}</span>
+                         </div>
+                         <i class="fa-solid fa-plane-up transform rotate-45 opacity-20 text-xl"></i>
+                     </div>
+
+                     <!-- 主要資訊 -->
+                     <div class="p-5 flex justify-between items-center relative">
+                         <!-- 起飛 -->
+                         <div class="text-center w-1/3">
+                             <span class="block text-3xl font-black font-mono text-stone-700 leading-none mb-1">{{ flight.depCode }}</span>
+                             <span class="text-sm font-bold text-muji-text">{{ flight.depTime }}</span>
+                         </div>
+
+                         <!-- 中間飛行路徑 -->
+                         <div class="flex-1 flex flex-col items-center justify-center px-2">
+                             <div class="flex items-center gap-1 text-[10px] text-stone-400 font-medium bg-stone-50 px-2 py-0.5 rounded-full mb-1">
+                                 <i class="fa-regular fa-clock"></i> {{ flight.duration }}
+                             </div>
+                             <div class="w-full h-px bg-stone-300 relative flex items-center justify-center">
+                                 <i class="fa-solid fa-plane text-stone-300 text-xs absolute bg-white px-1"></i>
+                             </div>
+                         </div>
+
+                         <!-- 抵達 -->
+                         <div class="text-center w-1/3">
+                             <span class="block text-3xl font-black font-mono text-stone-700 leading-none mb-1">{{ flight.arrCode }}</span>
+                             <span class="text-sm font-bold text-muji-text">{{ flight.arrTime }}</span>
+                             <span v-if="isNextDay(flight.depTime, flight.arrTime)" class="absolute top-6 right-4 text-[9px] text-red-400 font-bold">+1</span>
+                         </div>
+                     </div>
+
+<!-- 裝飾用虛線 -->
+                     <div class="absolute bottom-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-stone-200 to-transparent opacity-50"></div>
+                 </div>
              </div>
-        </div>
 
         <!-- ===== 2. 準備 (Planning) ===== -->
         <div v-if="currentTab === 'planning'" class="fade-in space-y-6 pb-20">
@@ -421,6 +471,72 @@
         </div>
 
     </main>
+
+  <!-- ======= 新增：航班編輯 Modal ======= -->
+    <div v-if="showFlightModal" class="fixed inset-0 z-[60] flex items-end justify-center bg-stone-900/40 backdrop-blur-sm" @click.self="showFlightModal=false">
+        <div class="bg-[#F9F9F7] w-full rounded-t-[2rem] p-6 slide-up pb-safe-bottom">
+            <div class="w-12 h-1 bg-stone-300 rounded-full mx-auto mb-6"></div>
+            
+            <h3 class="text-center font-bold text-lg mb-6 text-stone-700">
+                {{ flightForm.isEdit ? '編輯航班資訊' : '新增航班' }}
+            </h3>
+            
+            <div class="space-y-4">
+                <!-- 類型選擇 -->
+                <div class="bg-white p-1 rounded-2xl flex shadow-sm border border-stone-100">
+                    <button @click="flightForm.type='去程'" :class="flightForm.type==='去程' ? 'bg-muji-accent text-white shadow-sm' : 'text-stone-400'" class="flex-1 py-3 rounded-xl text-sm font-bold transition-all">去程</button>
+                    <button @click="flightForm.type='回程'" :class="flightForm.type==='回程' ? 'bg-orange-400 text-white shadow-sm' : 'text-stone-400'" class="flex-1 py-3 rounded-xl text-sm font-bold transition-all">回程</button>
+                </div>
+
+                <!-- 航班編號 -->
+                <div class="relative">
+                    <span class="absolute left-4 top-1/2 -translate-y-1/2 text-stone-400 text-xs font-bold">航班</span>
+                    <input v-model="flightForm.flightNo" placeholder="例如: JX850" class="w-full pl-14 pr-4 py-4 bg-white rounded-2xl font-bold text-stone-700 shadow-sm border border-stone-100 uppercase">
+                </div>
+
+                <!-- 機場代碼 -->
+                <div class="flex gap-2">
+                    <div class="flex-1 relative">
+                        <span class="absolute top-2 left-4 text-[10px] text-stone-400 font-bold uppercase">出發地</span>
+                        <input v-model="flightForm.depCode" placeholder="TPE" class="w-full pt-6 pb-2 px-4 bg-white rounded-2xl font-black font-mono text-xl text-center text-stone-700 shadow-sm border border-stone-100 uppercase">
+                    </div>
+                    <div class="flex items-center justify-center text-stone-300"><i class="fa-solid fa-plane"></i></div>
+                    <div class="flex-1 relative">
+                        <span class="absolute top-2 left-4 text-[10px] text-stone-400 font-bold uppercase">目的地</span>
+                        <input v-model="flightForm.arrCode" placeholder="CTS" class="w-full pt-6 pb-2 px-4 bg-white rounded-2xl font-black font-mono text-xl text-center text-stone-700 shadow-sm border border-stone-100 uppercase">
+                    </div>
+                </div>
+
+                <!-- 時間 -->
+                <div class="flex gap-2">
+                    <div class="flex-1 relative">
+                        <span class="absolute top-2 left-4 text-[10px] text-stone-400 font-bold uppercase">起飛時間</span>
+                        <input type="time" v-model="flightForm.depTime" class="w-full pt-6 pb-2 px-2 bg-white rounded-2xl font-bold text-xl text-center text-stone-700 shadow-sm border border-stone-100">
+                    </div>
+                    <div class="flex-1 relative">
+                        <span class="absolute top-2 left-4 text-[10px] text-stone-400 font-bold uppercase">抵達時間</span>
+                        <input type="time" v-model="flightForm.arrTime" class="w-full pt-6 pb-2 px-2 bg-white rounded-2xl font-bold text-xl text-center text-stone-700 shadow-sm border border-stone-100">
+                    </div>
+                </div>
+                
+                <p class="text-center text-xs text-stone-400 mt-2">
+                    預計飛行時間: <span class="font-bold text-muji-accent">{{ calculateDurationDisplay(flightForm.depTime, flightForm.arrTime) }}</span>
+                </p>
+            </div>
+
+            <!-- 按鈕區 -->
+            <div class="flex gap-3 mt-8">
+                <!-- 刪除按鈕 (編輯模式才顯示) -->
+                <button v-if="flightForm.isEdit" @click="deleteFlightEdit" class="w-14 bg-red-50 text-red-400 rounded-2xl flex items-center justify-center border border-red-100 active:scale-95 transition-transform">
+                    <i class="fa-solid fa-trash"></i>
+                </button>
+                
+                <button @click="saveFlight" class="flex-1 bg-stone-800 text-white py-4 rounded-2xl font-bold shadow-lg shadow-stone-300/50 active:scale-[0.98] transition-transform flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-check"></i> {{ flightForm.isEdit ? '儲存變更' : '新增航班' }}
+                </button>
+            </div>
+        </div>
+    </div>
 
     <!-- Modals (保持不變，為節省空間省略部分重複結構，但功能全在) -->
     <div v-if="showItemModal" class="fixed inset-0 z-[60] flex items-end justify-center bg-stone-900/30 backdrop-blur-sm" @click.self="showItemModal=false">
@@ -656,6 +772,94 @@
                     });
                     const now = new Date(); weather.value.lastUpdate = `${now.getHours()}:${String(now.getMinutes()).padStart(2,'0')}`;
                 } catch (e) { console.error(e); }
+            };
+
+ // ===== 航班資料 =====
+            const flights = ref([
+                { id: 1, type:'去程', flightNo: 'JX850', depCode:'TPE', arrCode:'CTS', depTime:'09:25', arrTime:'14:00', duration:'3h35m' },
+                { id: 2, type:'回程', flightNo: 'JX851', depCode:'CTS', arrCode:'TPE', depTime:'15:00', arrTime:'18:40', duration:'4h40m' }
+            ]);
+
+            // ===== 航班編輯邏輯 =====
+            const showFlightModal = ref(false);
+            const flightForm = reactive({
+                idx: null, // 用來記錄正在編輯哪一筆 (若是 -1 或 null 則為新增)
+                isEdit: false,
+                type: '去程',
+                flightNo: '',
+                depCode: '',
+                arrCode: '',
+                depTime: '',
+                arrTime: ''
+            });
+
+            const openFlightModal = (flight = null, idx = null) => {
+                if (flight) {
+                    // 編輯模式
+                    flightForm.isEdit = true;
+                    flightForm.idx = idx;
+                    Object.assign(flightForm, flight);
+                } else {
+                    // 新增模式
+                    flightForm.isEdit = false;
+                    flightForm.idx = null;
+                    Object.assign(flightForm, {
+                        type: '去程', flightNo: '', depCode: '', arrCode: '', depTime: '10:00', arrTime: '14:00'
+                    });
+                }
+                showFlightModal.value = true;
+            };
+
+            // 自動計算飛行時間 (輔助函式)
+            const calcDurationStr = (start, end) => {
+                if(!start || !end) return '--';
+                const [h1, m1] = start.split(':').map(Number);
+                const [h2, m2] = end.split(':').map(Number);
+                let mins = (h2 * 60 + m2) - (h1 * 60 + m1);
+                if (mins < 0) mins += 24 * 60; // 跨日
+                const h = Math.floor(mins / 60);
+                const m = mins % 60;
+                return `${h}h${m > 0 ? ' '+m+'m' : ''}`;
+            };
+            
+            // UI 顯示用計算 (不存入資料庫，僅顯示預覽)
+            const calculateDurationDisplay = (start, end) => calcDurationStr(start, end);
+
+            // 判斷是否跨日 (用於顯示 +1)
+            const isNextDay = (start, end) => {
+                if(!start || !end) return false;
+                const [h1, m1] = start.split(':').map(Number);
+                const [h2, m2] = end.split(':').map(Number);
+                return (h2 * 60 + m2) < (h1 * 60 + m1);
+            };
+
+            const saveFlight = () => {
+                const duration = calcDurationStr(flightForm.depTime, flightForm.arrTime);
+                const flightData = {
+                    type: flightForm.type,
+                    flightNo: flightForm.flightNo.toUpperCase(),
+                    depCode: flightForm.depCode.toUpperCase(),
+                    arrCode: flightForm.arrCode.toUpperCase(),
+                    depTime: flightForm.depTime,
+                    arrTime: flightForm.arrTime,
+                    duration: duration
+                };
+
+                if (flightForm.isEdit && flightForm.idx !== null) {
+                    flights.value[flightForm.idx] = { ...flightData, id: flights.value[flightForm.idx].id };
+                } else {
+                    flights.value.push({ ...flightData, id: Date.now() });
+                }
+                showFlightModal.value = false;
+            };
+
+            const deleteFlightEdit = () => {
+                if (confirm('確定要刪除此航班嗎？')) {
+                    if (flightForm.idx !== null) {
+                        flights.value.splice(flightForm.idx, 1);
+                    }
+                    showFlightModal.value = false;
+                }
             };
 
             // Forms
@@ -931,7 +1135,11 @@
                 exchangeRate, exchangeInput, flights, addFlight, deleteFlight,
                 hotels, showHotelModal, hotelForm, openHotelModal, handleHotelImg, saveHotel, deleteHotel,
                 planType, todoList, addTodo, deleteTodo, shoppingList, wishlist, openItemModal, showItemModal, itemForm, itemFormType, handleItemImg, saveItem, deleteShopping, deleteWishlist,
-                
+
+                 // 航班相關
+                flights, showFlightModal, flightForm, openFlightModal, saveFlight, deleteFlightEdit, 
+                calculateDurationDisplay, isNextDay,
+
                 // 行程相關 Return
                 itinerary, currDayIdx, currentEvents, addDay, deleteDay, editDayDate, getWeekName, getDayDate,
                 openEventModal, showEventModal, eventForm, saveEvent, editEvent, isEditing, confirmDeleteEvent, 
