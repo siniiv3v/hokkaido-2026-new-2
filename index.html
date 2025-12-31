@@ -19,8 +19,8 @@
         tailwind.config = {
             theme: {
                 extend: {
-                    fontFamily: { sans: ['"Zen Maru Gothic"', '"Noto Sans TC"', 'sans-serif'] },
-mono: ['"Oswald"', 'monospace'] // 用於機場代碼
+                    fontFamily: { sans: ['"Zen Maru Gothic"', '"Noto Sans TC"', 'sans-serif'],
+mono: ['"Oswald"', 'monospace']// 用於機場代碼
                     },
                     colors: {
                         muji: {
@@ -722,7 +722,6 @@ mono: ['"Oswald"', 'monospace'] // 用於機場代碼
             const wishlist = ref([]);
             const itinerary = ref([{date:'2025-01-23', events:[]}]);
             const expenses = ref([]);
-            const flights = ref([{type:'去程', depCode:'HKG', arrCode:'CTS', depTime:'09:00', arrTime:'14:30', duration:'5h30m'}]);
             const hotels = ref([]);
             
             // 匯率 Logic
