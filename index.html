@@ -15,7 +15,7 @@
     <!-- 字體 -->
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&family=Zen+Maru+Gothic:wght@400;500;700&family=Oswald:wght@500;700&display=swap" rel="stylesheet">
 
-    <!-- Tailwind 設定 (已修正括號錯誤) -->
+    <!-- Tailwind 設定 -->
     <script>
         tailwind.config = {
             theme: {
@@ -169,6 +169,14 @@
                     </div>
                     <div class="p-5">
                         <h3 class="font-bold text-lg text-muji-text leading-tight mb-1">{{ hotel.name }}</h3>
+                        
+                        <!-- 修改開始：顯示日期與晚數 -->
+                        <div v-if="hotel.startDate" class="flex items-center gap-2 mb-2">
+                             <span class="bg-stone-800 text-white text-[10px] px-2 py-0.5 rounded-full font-bold shadow-sm">{{ calculateNights(hotel.startDate, hotel.endDate) }} 晚</span>
+                             <span class="text-xs text-stone-500 font-bold font-sans">{{ hotel.startDate.replace(/-/g, '/') }} ~ {{ hotel.endDate ? hotel.endDate.replace(/-/g, '/') : '?' }}</span>
+                        </div>
+                        <!-- 修改結束 -->
+
                         <p class="text-xs text-stone-400 mb-3"><i class="fa-solid fa-map-pin mr-1 text-muji-accent"></i>{{ hotel.address || '未填寫地址' }}</p>
                         <div class="flex items-center justify-between bg-stone-50 rounded-xl p-3 mb-3">
                             <div class="text-center"><p class="text-[10px] text-stone-400 uppercase">Check-in</p><p class="font-bold text-sm">{{ hotel.checkIn }}</p></div>
@@ -414,12 +422,49 @@
         </div>
     </div>
     
-    <!-- Other Modals (Keep concise) -->
+    <!-- Other Modals -->
     <div v-if="showItemModal" class="fixed inset-0 z-[60] flex items-end justify-center bg-stone-900/30 backdrop-blur-sm" @click.self="showItemModal=false"><div class="bg-white w-full rounded-t-[2rem] p-6 slide-up pb-safe-bottom"><h3 class="text-center font-bold text-lg mb-6">{{ itemFormType === 'shopping' ? '新增購物清單' : '新增想去景點' }}</h3><label class="block w-full h-32 bg-stone-50 rounded-2xl border-2 border-dashed border-stone-200 mb-4 flex items-center justify-center relative overflow-hidden"><img v-if="itemForm.image" :src="itemForm.image" class="w-full h-full object-cover"><div v-else class="text-stone-400 flex flex-col items-center"><i class="fa-solid fa-camera mb-1"></i><span class="text-xs">上傳照片</span></div><input type="file" accept="image/*" @change="handleItemImg" class="hidden"></label><input v-model="itemForm.name" placeholder="名稱" class="w-full p-4 bg-stone-50 rounded-2xl mb-3 font-bold"><input v-if="itemFormType==='shopping'" type="number" v-model="itemForm.price" placeholder="價格 (JPY)" class="w-full p-4 bg-stone-50 rounded-2xl mb-6"><input v-else v-model="itemForm.note" placeholder="備註 / 說明" class="w-full p-4 bg-stone-50 rounded-2xl mb-6"><button @click="saveItem" class="w-full bg-stone-800 text-white py-4 rounded-2xl font-bold shadow-lg">加入</button></div></div>
     <div v-if="showExpModal" class="fixed inset-0 z-[60] flex items-end justify-center bg-stone-900/30 backdrop-blur-sm" @click.self="showExpModal=false"><div class="bg-white w-full rounded-t-[2rem] p-6 slide-up pb-safe-bottom"><h3 class="text-center font-bold text-lg mb-4">記一筆</h3><div class="bg-stone-100 rounded-2xl p-4 mb-4 text-center"><input type="number" inputmode="decimal" v-model="expForm.amount" placeholder="0" class="bg-transparent text-4xl font-bold text-center w-full text-muji-text"><span class="text-xs text-stone-400">JPY</span></div><input v-model="expForm.title" placeholder="項目" class="w-full p-4 bg-stone-50 rounded-2xl mb-3 font-bold"><div class="flex gap-2 overflow-x-auto hide-scrollbar mb-4"><button v-for="m in members" :key="m.name" @click="expForm.payer=m.name" :class="expForm.payer===m.name ? 'bg-stone-800 text-white' : 'bg-stone-100 text-stone-400'" class="px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-colors">{{ m.name }}</button></div><div class="grid grid-cols-2 gap-3 mb-4"><button @click="expForm.method='cash'" :class="expForm.method==='cash'?'bg-stone-200 ring-2 ring-stone-400':'bg-stone-50'" class="py-3 rounded-xl text-sm font-bold text-stone-600">現金</button><button @click="expForm.method='card'" :class="expForm.method==='card'?'bg-blue-100 ring-2 ring-blue-300 text-blue-600':'bg-stone-50'" class="py-3 rounded-xl text-sm font-bold text-stone-400">信用卡</button></div><div class="flex items-center justify-between p-4 bg-stone-50 rounded-2xl mb-6"><span class="font-bold text-stone-600 text-sm">公費 (大家平分)</span><div @click="expForm.isPublic=!expForm.isPublic" :class="expForm.isPublic?'bg-green-400':'bg-stone-300'" class="w-10 h-6 rounded-full relative transition-colors"><div :class="expForm.isPublic?'left-5':'left-1'" class="absolute top-1 w-4 h-4 bg-white rounded-full transition-all"></div></div></div><button @click="saveExpense" class="w-full bg-stone-800 text-white py-4 rounded-2xl font-bold shadow-lg">儲存</button></div></div>
     <div v-if="showEventModal" class="fixed inset-0 z-[60] flex items-end justify-center bg-stone-900/40 backdrop-blur-sm" @click.self="showEventModal=false"><div class="bg-[#F9F9F7] w-full rounded-t-[2rem] p-6 slide-up pb-safe-bottom max-h-[90vh] overflow-y-auto"><div class="w-12 h-1 bg-stone-300 rounded-full mx-auto mb-6"></div><h3 class="text-center font-bold text-lg mb-6 text-stone-700">{{ isEditing ? '編輯行程' : '新增行程' }}</h3><div class="space-y-5"><div><label class="text-xs font-bold text-stone-400 ml-1 mb-2 block">分類</label><div class="grid grid-cols-3 gap-2"><button v-for="c in ['spot','food','shopping','hotel','transport','other']" :key="c" @click="eventForm.category=c" :class="eventForm.category===c ? 'bg-stone-800 text-white ring-2 ring-stone-800 ring-offset-1' : 'bg-white text-stone-400 border border-stone-200'" class="py-2.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1"><i :class="getCatIcon(c)"></i> {{ translateCat(c) }}</button></div></div><div><label class="text-xs font-bold text-stone-400 ml-1 mb-1 block">名稱</label><div class="relative"><input v-model="eventForm.name" placeholder="輸入地點名稱..." class="w-full p-4 bg-white rounded-2xl font-bold text-stone-700 shadow-sm border border-stone-100 focus:border-stone-400 transition-colors"><button v-if="eventForm.name" @click="openMap(eventForm.name)" class="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 hover:text-blue-500"><i class="fa-solid fa-map-location-dot"></i></button></div></div><div><label class="text-xs font-bold text-stone-400 ml-1 mb-1 block">開始時間</label><input type="time" v-model="eventForm.time" class="w-full p-4 bg-white rounded-2xl font-bold text-center text-xl text-stone-700 shadow-sm border border-stone-100"></div><div v-if="['spot','food','shopping','hotel'].includes(eventForm.category)" class="fade-in"><label class="text-xs font-bold text-stone-400 ml-1 mb-1 block">營業/入住時間</label><input v-model="eventForm.openTime" placeholder="例如: 09:00 - 22:00" class="w-full p-4 bg-white rounded-2xl text-sm shadow-sm border border-stone-100"></div><div v-if="eventForm.category === 'spot'" class="fade-in"><label class="text-xs font-bold text-stone-400 ml-1 mb-1 block">門票 / 預算</label><input v-model="eventForm.ticket" placeholder="例如: ¥2000 / 免費" class="w-full p-4 bg-white rounded-2xl text-sm shadow-sm border border-stone-100"></div><div><label class="text-xs font-bold text-stone-400 ml-1 mb-1 block">特色 & 備註</label><textarea v-model="eventForm.note" placeholder="例如: 必吃霜淇淋、記得帶護照..." class="w-full p-4 bg-white rounded-2xl h-24 text-sm text-stone-600 resize-none shadow-sm border border-stone-100"></textarea></div></div><div class="flex gap-3 mt-8"><button v-if="isEditing" @click="confirmDeleteEvent" class="w-14 bg-red-50 text-red-400 rounded-2xl flex items-center justify-center border border-red-100 active:scale-95 transition-transform"><i class="fa-solid fa-trash"></i></button><button @click="saveEvent" class="flex-1 bg-stone-800 text-white py-4 rounded-2xl font-bold shadow-lg shadow-stone-300/50 active:scale-[0.98] transition-transform flex items-center justify-center gap-2"><i class="fa-solid fa-check"></i> {{ isEditing ? '儲存變更' : '加入行程' }}</button></div></div></div>
     <div v-if="showMemberModal" class="fixed inset-0 z-[60] flex items-end justify-center bg-stone-900/30 backdrop-blur-sm" @click.self="showMemberModal=false"><div class="bg-white w-full rounded-t-[2rem] p-6 slide-up pb-safe-bottom"><h3 class="text-center font-bold text-lg mb-6">新增旅伴</h3><div class="bg-stone-50 rounded-2xl p-6 mb-6 flex flex-col items-center justify-center border border-stone-100"><div class="w-20 h-20 rounded-full bg-stone-200 mb-4 flex items-center justify-center text-white text-3xl shadow-inner"><i class="fa-solid fa-user"></i></div><p class="text-xs text-stone-400">頭像可在新增後點擊圖片上傳</p></div><input v-model="newMemberName" placeholder="旅伴名字 (例如: 小明)" class="w-full p-4 bg-stone-50 rounded-2xl mb-6 font-bold text-center text-lg placeholder-stone-300 focus:bg-white focus:ring-2 focus:ring-stone-100 transition-all"><button @click="addMember" class="w-full bg-stone-800 text-white py-4 rounded-2xl font-bold shadow-lg active:scale-[0.98] transition-transform">確認加入</button></div></div>
-    <div v-if="showHotelModal" class="fixed inset-0 z-[60] flex items-end justify-center bg-stone-900/30 backdrop-blur-sm" @click.self="showHotelModal=false"><div class="bg-white w-full rounded-t-[2rem] p-6 slide-up pb-safe-bottom"><h3 class="text-center font-bold text-lg mb-6">{{ hotelForm.id ? '編輯住宿' : '新增住宿' }}</h3><label class="block w-full h-32 bg-stone-50 rounded-2xl border-2 border-dashed border-stone-200 mb-4 flex items-center justify-center relative overflow-hidden"><img v-if="hotelForm.image" :src="hotelForm.image" class="w-full h-full object-cover"><div v-else class="text-stone-400 flex flex-col items-center"><i class="fa-solid fa-hotel mb-1"></i><span class="text-xs">飯店照片</span></div><input type="file" accept="image/*" @change="handleHotelImg" class="hidden"></label><div class="space-y-3"><input v-model="hotelForm.name" placeholder="飯店名稱" class="w-full p-4 bg-stone-50 rounded-2xl font-bold"><input v-model="hotelForm.address" placeholder="地址" class="w-full p-4 bg-stone-50 rounded-2xl text-sm"><div class="flex gap-2"><div class="flex-1 bg-stone-50 p-3 rounded-2xl"><span class="block text-[10px] text-stone-400 mb-1">Check-in</span><input type="time" v-model="hotelForm.checkIn" class="bg-transparent font-bold w-full text-center"></div><div class="flex-1 bg-stone-50 p-3 rounded-2xl"><span class="block text-[10px] text-stone-400 mb-1">Check-out</span><input type="time" v-model="hotelForm.checkOut" class="bg-transparent font-bold w-full text-center"></div></div><div class="bg-stone-50 p-4 rounded-2xl flex items-center gap-2"><span class="text-sm font-bold text-stone-500">總金額 (JPY)</span><input type="number" v-model="hotelForm.price" class="bg-transparent text-right font-bold text-lg w-full" placeholder="0"></div></div><div class="flex gap-3 mt-6"><button v-if="hotelForm.id" @click="deleteHotel" class="w-14 bg-red-50 text-red-400 rounded-2xl flex items-center justify-center"><i class="fa-solid fa-trash"></i></button><button @click="saveHotel" class="flex-1 bg-stone-800 text-white py-4 rounded-2xl font-bold shadow-lg">儲存</button></div></div></div>
+    
+    <!-- 修改開始：Hotel Modal (包含日期欄位) -->
+    <div v-if="showHotelModal" class="fixed inset-0 z-[60] flex items-end justify-center bg-stone-900/30 backdrop-blur-sm" @click.self="showHotelModal=false">
+        <div class="bg-white w-full rounded-t-[2rem] p-6 slide-up pb-safe-bottom">
+            <h3 class="text-center font-bold text-lg mb-6">{{ hotelForm.id ? '編輯住宿' : '新增住宿' }}</h3>
+            <label class="block w-full h-32 bg-stone-50 rounded-2xl border-2 border-dashed border-stone-200 mb-4 flex items-center justify-center relative overflow-hidden">
+                <img v-if="hotelForm.image" :src="hotelForm.image" class="w-full h-full object-cover">
+                <div v-else class="text-stone-400 flex flex-col items-center"><i class="fa-solid fa-hotel mb-1"></i><span class="text-xs">飯店照片</span></div>
+                <input type="file" accept="image/*" @change="handleHotelImg" class="hidden">
+            </label>
+            <div class="space-y-3">
+                <input v-model="hotelForm.name" placeholder="飯店名稱" class="w-full p-4 bg-stone-50 rounded-2xl font-bold">
+                <input v-model="hotelForm.address" placeholder="地址" class="w-full p-4 bg-stone-50 rounded-2xl text-sm">
+                <!-- 新增：日期選擇 -->
+                <div class="flex gap-2">
+                    <div class="flex-1 bg-stone-50 p-3 rounded-2xl">
+                        <span class="block text-[10px] text-stone-400 mb-1 font-bold">入住日期</span>
+                        <input type="date" v-model="hotelForm.startDate" class="bg-transparent font-bold w-full text-sm text-stone-600 font-sans">
+                    </div>
+                    <div class="flex-1 bg-stone-50 p-3 rounded-2xl">
+                        <span class="block text-[10px] text-stone-400 mb-1 font-bold">退房日期</span>
+                        <input type="date" v-model="hotelForm.endDate" class="bg-transparent font-bold w-full text-sm text-stone-600 font-sans">
+                    </div>
+                </div>
+                <!-- 結束新增 -->
+                <div class="flex gap-2">
+                    <div class="flex-1 bg-stone-50 p-3 rounded-2xl"><span class="block text-[10px] text-stone-400 mb-1">Check-in</span><input type="time" v-model="hotelForm.checkIn" class="bg-transparent font-bold w-full text-center"></div>
+                    <div class="flex-1 bg-stone-50 p-3 rounded-2xl"><span class="block text-[10px] text-stone-400 mb-1">Check-out</span><input type="time" v-model="hotelForm.checkOut" class="bg-transparent font-bold w-full text-center"></div>
+                </div>
+                <div class="bg-stone-50 p-4 rounded-2xl flex items-center gap-2"><span class="text-sm font-bold text-stone-500">總金額 (JPY)</span><input type="number" v-model="hotelForm.price" class="bg-transparent text-right font-bold text-lg w-full" placeholder="0"></div>
+            </div>
+            <div class="flex gap-3 mt-6">
+                <button v-if="hotelForm.id" @click="deleteHotel" class="w-14 bg-red-50 text-red-400 rounded-2xl flex items-center justify-center"><i class="fa-solid fa-trash"></i></button>
+                <button @click="saveHotel" class="flex-1 bg-stone-800 text-white py-4 rounded-2xl font-bold shadow-lg">儲存</button>
+            </div>
+        </div>
+    </div>
+    <!-- 修改結束 -->
 
 </div>
 
@@ -490,7 +535,11 @@
 
             // Forms & Modals
             const showMemberModal = ref(false); const newMemberName = ref('');
-            const showHotelModal = ref(false); const hotelForm = reactive({ id:null, name:'', address:'', checkIn:'15:00', checkOut:'11:00', price:'', image:'' });
+
+            // 修改開始：hotelForm 加入 startDate, endDate
+            const hotelForm = reactive({ id:null, name:'', address:'', startDate:'', endDate:'', checkIn:'15:00', checkOut:'11:00', price:'', image:'' });
+            
+            const showHotelModal = ref(false); 
             const showItemModal = ref(false); const itemFormType = ref('shopping'); const itemForm = reactive({name:'', price:'', note:'', image:''});
             const showExpModal = ref(false); const expForm = reactive({amount:'', title:'', payer:'我', method:'cash', isPublic:true, category:'food'});
             const showEventModal = ref(false); const isEditing = ref(false); const currDayIdx = ref(0); const planType = ref('todo');
@@ -536,10 +585,26 @@
             const translateCat = (c) => ({'spot':'景點','food':'美食','hotel':'住宿','shopping':'購物','transport':'交通','other':'其他'}[c]||c);
             const getCatColor = (c) => ({'spot':'bg-blue-400', 'food':'bg-orange-400','transport':'bg-stone-500','shopping':'bg-pink-400','hotel':'bg-purple-400','other':'bg-gray-400'}[c]||'bg-stone-400');
             const getCatIcon = (c) => ({'spot':'fa-camera','food':'fa-utensils','transport':'fa-train','shopping':'fa-bag-shopping','hotel':'fa-bed','other':'fa-star'}[c]||'fa-circle');
-            const openHotelModal = (isEdit, d=null) => { if(isEdit&&d) Object.assign(hotelForm, d); else Object.assign(hotelForm, { id:null, name:'', address:'', checkIn:'15:00', checkOut:'11:00', price:'', image:'' }); showHotelModal.value = true; };
+            
+            // 修改開始：OpenHotelModal 初始化 startDate, endDate
+            const openHotelModal = (isEdit, d=null) => { 
+                if(isEdit&&d) Object.assign(hotelForm, d); 
+                else Object.assign(hotelForm, { id:null, name:'', address:'', startDate:'', endDate:'', checkIn:'15:00', checkOut:'11:00', price:'', image:'' }); 
+                showHotelModal.value = true; 
+            };
+            // 結束修改
+
             const handleHotelImg = (e) => { const f=e.target.files[0]; if(f){ const r=new FileReader(); r.onload=(e)=>hotelForm.image=e.target.result; r.readAsDataURL(f); }};
             const saveHotel = () => { if(hotelForm.name) { if(hotelForm.id) { const idx=hotels.value.findIndex(h=>h.id===hotelForm.id); if(idx!==-1) hotels.value[idx]={...hotelForm}; } else { hotels.value.push({...hotelForm, id: Date.now()}); } showHotelModal.value=false; }};
             const deleteHotel = () => { if(confirm('刪除?')) { const idx=hotels.value.findIndex(h=>h.id===hotelForm.id); hotels.value.splice(idx,1); showHotelModal.value=false; }};
+            
+            // 新增 helper function
+            const calculateNights = (s, e) => {
+                if(!s || !e) return 0;
+                const diff = new Date(e) - new Date(s);
+                return Math.max(0, Math.round(diff/(1000*60*60*24)));
+            };
+
             const addMember = () => { if(newMemberName.value) { members.value.push({name:newMemberName.value, avatar:''}); newMemberName.value=''; showMemberModal.value=false; }};
             const deleteMember = (idx) => { if(confirm('刪除?')) members.value.splice(idx,1); };
             const updateMemberAvatar = (e, idx) => { const f=e.target.files[0]; if(f){ const r=new FileReader(); r.onload=(e)=>members.value[idx].avatar=e.target.result; r.readAsDataURL(f); }};
@@ -558,7 +623,7 @@
 
             return {
                 user, login, currentTab, tabs, syncStatusClass, weather, members, newMemberName, addMember, deleteMember, updateMemberAvatar, showMemberModal,
-                exchangeRate, exchangeInput, hotels, showHotelModal, hotelForm, openHotelModal, handleHotelImg, saveHotel, deleteHotel,
+                exchangeRate, exchangeInput, hotels, showHotelModal, hotelForm, openHotelModal, handleHotelImg, saveHotel, deleteHotel, calculateNights, // 記得回傳 calculateNights
                 planType, todoList, addTodo, deleteTodo, shoppingList, wishlist, openItemModal, showItemModal, itemForm, itemFormType, handleItemImg, saveItem, deleteShopping, deleteWishlist,
                 itinerary, currDayIdx, currentEvents, addDay, deleteDay, editDayDate, getWeekName, getDayDate, openEventModal, showEventModal, eventForm, saveEvent, editEvent, isEditing, confirmDeleteEvent, openMap, translateCat, getCatColor, getCatIcon, editTransport, getTransportIcon, previousNightHotel,
                 expenses, showExpModal, expForm, openExpenseModal, saveExpense, deleteExpense, totalExpense, totalByMethod,
