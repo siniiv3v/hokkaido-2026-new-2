@@ -570,7 +570,27 @@
             watch(currentTab, (newTab) => { if(newTab === 'itinerary') initSortable(); });
             const getWeekName = (d) => ['SUN','MON','TUE','WED','THU','FRI','SAT'][new Date(d).getDay()];
             const getDayDate = (d) => `${new Date(d).getDate()}/${new Date(d).getMonth()+1}`;
-            const previousNightHotel = computed(() => hotels.value.length ? hotels.value[hotels.value.length - 1] : null);
+            const previousNightHotel = computed(() => {
+                // 防呆：如果行程資料還沒載入
+                if (!itinerary.value || !itinerary.value[currDayIdx.value]) return null;
+
+                // 1. 取得當前行程頁面的日期
+                const curDateStr = itinerary.value[currDayIdx.value].date;
+                const curDate = new Date(curDateStr);
+
+                // 2. 計算「前一晚」的日期 (當前日期 - 1天)
+                // 例如: 今天是 1/24，我們想知道 1/23 晚上睡哪裡
+                const prevDate = new Date(curDate);
+                prevDate.setDate(curDate.getDate() - 1);
+                const prevDateStr = prevDate.toISOString().split('T')[0];
+
+                // 3. 比對住宿列表
+                // 條件：住宿開始日 <= 前一晚 且 住宿結束日 > 前一晚
+                return hotels.value.find(h => {
+                    if (!h.startDate || !h.endDate) return false;
+                    return h.startDate <= prevDateStr && h.endDate > prevDateStr;
+                }) || null; // 找不到則回傳 null (顯示'尚未安排住宿')
+            });
             const currentEvents = computed(() => itinerary.value[currDayIdx.value].events || []);
             const openEventModal = () => { isEditing.value=false; Object.assign(eventForm, { id: Date.now(), name: '', time: '10:00', category: 'spot', ticket: '', openTime: '', note: '', transportMode: 'transport', travelTime: '' }); showEventModal.value = true; };
             const editEvent = (evt) => { isEditing.value=true; Object.assign(eventForm, evt); showEventModal.value = true; };
