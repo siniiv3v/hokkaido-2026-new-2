@@ -302,94 +302,6 @@
                     <div class="w-12 flex flex-col items-center justify-end pb-2"><i class="fa-solid fa-bed text-stone-300 mb-1"></i><div class="w-0.5 h-6 bg-stone-200 border-l border-dashed border-stone-300"></div></div>
                     <div class="flex-1 bg-stone-100/50 rounded-2xl p-3 flex items-center justify-between text-xs text-stone-500 border border-stone-100">
                         <div class="flex items-center gap-2"><span class="bg-white px-2 py-1 rounded-md shadow-sm text-[10px]">前一晚</span><span>{{ previousNightHotel ? previousNightHotel.name : '尚未安排住宿' }}</span></div>
-                        <!-- 第一個景點前的交通 (從飯店出發) -->
-                        <button @click="openTransportModal(0)" class="flex items-center gap-1 bg-white px-2 py-1 rounded-full shadow-sm hover:text-muji-accent transition-colors">
-                            <i :class="getTransportIcon(currentEvents[0].transport?.mode || 'transport')" class="text-stone-400"></i>
-                            <span class="font-bold">{{ currentEvents[0].transport?.duration || '出發' }}</span>
-                        </button>
-                    </div>
-                </div>
-                
-                <div id="itinerary-list" class="space-y-0">
-                    <div v-for="(event, idx) in currentEvents" :key="event.id" :data-id="event.id" class="relative group">
-                        
-                       <!-- 景點之間的交通資訊顯示區塊 (變更為藍色/細緻版) -->
-                        <div v-if="idx > 0" class="flex gap-4 min-h-[2.5rem] relative z-0 my-1">
-                             <div class="w-12 flex justify-center h-full"><div class="w-0.5 h-full bg-stone-300"></div></div>
-                             <div class="flex-1 flex items-center">
-                                 <button @click="openTransportModal(idx)" 
-                                         class="w-full flex items-center gap-3 bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-lg text-xs text-blue-900 transition-all border border-blue-100 hover:border-blue-300 group/trans shadow-sm">
-                                     <!-- 如果有設定交通資訊 -->
-                                     <template v-if="event.transport">
-                                         <!-- Icon 變小 (w-6 h-6) 且變藍色 -->
-                                         <div class="w-6 h-6 rounded-full bg-blue-200 text-blue-600 flex items-center justify-center shrink-0">
-                                             <i :class="getTransportIcon(event.transport.mode)" class="text-[10px]"></i>
-                                         </div>
-                                         <div class="flex-1 text-left flex items-center justify-between gap-2 overflow-hidden">
-                                             <!-- 左側：地點與圖示 -->
-                                             <div class="flex items-center gap-2 truncate min-w-0">
-                                                 <p class="text-[10px] text-blue-800/70 truncate font-medium">
-                                                     <span v-if="event.transport.depLoc">{{ event.transport.depLoc }}</span>
-                                                     <span v-else>起點</span>
-                                                     <i class="fa-solid fa-caret-right mx-1 opacity-50"></i>
-                                                     <span v-if="event.transport.arrLoc">{{ event.transport.arrLoc }}</span>
-                                                     <span v-else>終點</span>
-                                                 </p>
-                                             </div>
-                                             
-                                             <!-- 右側：時間與耗時 -->
-                                             <div class="flex items-center gap-2 shrink-0">
-                                                 <span class="font-bold text-blue-900 text-[10px] font-mono">{{ event.transport.depTime }}</span>
-                                                 <i class="fa-solid fa-arrow-right text-[8px] text-blue-300"></i>
-                                                 <span class="font-bold text-blue-900 text-[10px] font-mono">{{ event.transport.arrTime }}</span>
-                                                 <span class="text-[9px] bg-white px-1.5 py-0.5 rounded text-blue-600 font-bold border border-blue-100 shadow-sm">{{ event.transport.duration }}</span>
-                                             </div>
-                                         </div>
-                                         <i class="fa-solid fa-pen text-blue-300 opacity-0 group-hover/trans:opacity-100 transition-opacity text-[10px]"></i>
-                                     </template>
-                                     
-                                     <!-- 如果沒有設定 -->
-                                     <template v-else>
-                                         <div class="w-5 h-5 rounded-full bg-blue-200/50 text-blue-400 flex items-center justify-center"><i class="fa-solid fa-plus text-[8px]"></i></div>
-                                         <span class="text-blue-400/70 font-bold text-[10px]">新增交通</span>
-                                     </template>
-                                 </button>
-                             </div>
-                        </div>
-                        <!-- 景點卡片與時間軸 -->
-                        <div class="flex items-start relative z-10 cursor-grab active:cursor-grabbing">
-                            <!-- 修改開始：左側時間顯示 (寬度改為 w-14 以容納文字) -->
-                            <div class="w-14 flex flex-col items-center shrink-0 pt-1 relative">
-                                <!-- 時間方塊 -->
-                                <div class="w-14 h-14 rounded-2xl bg-stone-800 text-white shadow-lg flex flex-col items-center justify-center border-2 border-white ring-1 ring-stone-100 z-10">
-                                    <span class="text-sm font-bold leading-none mb-0.5 tracking-tight font-sans">
-                                        {{ formatTimeDisplay(event.time).time }}
-                                    </span>
-                                    <span class="text-[10px] font-medium opacity-60 leading-none tracking-widest uppercase">
-                                        {{ formatTimeDisplay(event.time).period }}
-                                    </span>
-                                </div>
-                                <!-- 垂直連接線 (自動置中) -->
-                                <div v-if="idx < currentEvents.length - 1" class="w-0.5 h-full bg-stone-300 absolute top-12 left-1/2 -translate-x-1/2 -z-10"></div>
-                            </div>
-                            <!-- 修改結束 -->
-
-                            <!-- 右側卡片 (保持原本邏輯，但 margin-left 微調以配合變寬的時間軸) -->
-                            <div class="ml-3 flex-1 bg-white rounded-[1.5rem] p-4 shadow-soft active:scale-[0.99] transition-transform border border-stone-50 relative overflow-hidden" @click="editEvent(event)">
-                                <!-- ... (卡片內部內容保持不變) ... -->
-                                <div class="flex justify-between items-start mb-2">
-                                    <span :class="getCatColor(event.category)" class="text-[10px] text-white px-2 py-0.5 rounded-lg font-bold shadow-sm tracking-wide"><i :class="getCatIcon(event.category)" class="mr-1"></i>{{ translateCat(event.category) }}</span>
-                                    <button @click.stop="openMap(event.name)" class="w-8 h-8 rounded-full bg-stone-100 text-stone-600 hover:bg-blue-50 hover:text-blue-500 flex items-center justify-center transition-colors"><i class="fa-solid fa-location-arrow text-xs"></i></button>
-                                </div>
-                                <h3 class="font-bold text-lg text-muji-text leading-tight mb-2">{{ event.name }}</h3>
-                                <div class="flex flex-wrap gap-2 mb-3">
-                                    <div v-if="['spot','food','shopping'].includes(event.category) && event.openTime" class="text-[10px] text-stone-500 bg-stone-50 px-2 py-1 rounded-md"><i class="fa-regular fa-clock mr-1 text-stone-400"></i>{{ event.openTime }}</div>
-                                    <div v-if="event.category === 'spot' && event.ticket" class="text-[10px] text-stone-500 bg-stone-50 px-2 py-1 rounded-md"><i class="fa-solid fa-ticket mr-1 text-stone-400"></i>{{ event.ticket }}</div>
-                                </div>
-                                <p v-if="event.note" class="text-xs text-stone-400 bg-stone-50/50 p-2 rounded-xl border border-stone-100/50 line-clamp-2">{{ event.note }}</p>
-                                <div class="absolute right-2 bottom-2 text-stone-200 opacity-50"><i class="fa-solid fa-grip-lines"></i></div>
-                            </div>
-                        </div>                        
                         <button @click="editTransport(0, true)" class="flex items-center gap-1 bg-white px-2 py-1 rounded-full shadow-sm"><i :class="getTransportIcon(currentEvents[0].transportMode || 'transport')" class="text-muji-accent"></i><span class="font-bold">{{ currentEvents[0].travelTime || '設定交通' }}</span></button>
                     </div>
                 </div>
@@ -403,7 +315,28 @@
                                  </button>
                              </div>
                         </div>
-                     
+                        <div class="flex items-start relative z-10 cursor-grab active:cursor-grabbing">
+                            <div class="w-12 flex flex-col items-center shrink-0 pt-1">
+                                <div class="w-12 h-12 rounded-[1rem] bg-stone-800 text-white shadow-lg flex flex-col items-center justify-center border-2 border-white ring-1 ring-stone-100 z-10">
+                                    <span class="text-sm font-bold leading-none">{{ event.time.split(':')[0] }}</span><span class="text-[10px] opacity-60 leading-none">{{ event.time.split(':')[1] }}</span>
+                                </div>
+                                <div v-if="idx < currentEvents.length - 1" class="w-0.5 h-full bg-stone-300 absolute top-12 left-6 -translate-x-1/2 -z-10"></div>
+                            </div>
+                            <div class="ml-4 flex-1 bg-white rounded-[1.5rem] p-4 shadow-soft active:scale-[0.99] transition-transform border border-stone-50 relative overflow-hidden" @click="editEvent(event)">
+                                <div class="flex justify-between items-start mb-2">
+                                    <span :class="getCatColor(event.category)" class="text-[10px] text-white px-2 py-0.5 rounded-lg font-bold shadow-sm tracking-wide"><i :class="getCatIcon(event.category)" class="mr-1"></i>{{ translateCat(event.category) }}</span>
+                                    <button @click.stop="openMap(event.name)" class="w-8 h-8 rounded-full bg-stone-100 text-stone-600 hover:bg-blue-50 hover:text-blue-500 flex items-center justify-center transition-colors"><i class="fa-solid fa-location-arrow text-xs"></i></button>
+                                </div>
+                                <h3 class="font-bold text-lg text-muji-text leading-tight mb-2">{{ event.name }}</h3>
+                                <div class="flex flex-wrap gap-2 mb-3">
+                                    <div v-if="['spot','food','shopping'].includes(event.category) && event.openTime" class="text-[10px] text-stone-500 bg-stone-50 px-2 py-1 rounded-md"><i class="fa-regular fa-clock mr-1 text-stone-400"></i>{{ event.openTime }}</div>
+                                    <div v-if="event.category === 'spot' && event.ticket" class="text-[10px] text-stone-500 bg-stone-50 px-2 py-1 rounded-md"><i class="fa-solid fa-ticket mr-1 text-stone-400"></i>{{ event.ticket }}</div>
+                                </div>
+                                <p v-if="event.note" class="text-xs text-stone-400 bg-stone-50/50 p-2 rounded-xl border border-stone-100/50 line-clamp-2">{{ event.note }}</p>
+                                <div class="absolute right-2 bottom-2 text-stone-200 opacity-50"><i class="fa-solid fa-grip-lines"></i></div>
+                            </div>
+                        </div>
+                    </div>
                     <div v-if="currentEvents.length === 0" class="flex flex-col items-center justify-center py-10 text-stone-300"><i class="fa-regular fa-map text-4xl mb-2 opacity-50"></i><p class="text-xs">這一天還沒安排行程</p></div>
                 </div>
                 <div class="h-10"></div>
@@ -731,16 +664,6 @@
                 return Math.max(0, Math.round(diff/(1000*60*60*24)));
             };
 
-            // 新增：時間格式化 helper (24h -> 12h AM/PM)
-            const formatTimeDisplay = (t) => {
-                if (!t) return { time: '--:--', period: '--' };
-                const [h, m] = t.split(':').map(Number);
-                const period = h >= 12 ? 'PM' : 'AM';
-                const h12 = h % 12 || 12; // 將 0 點或 12 點轉為 12
-                const mStr = m.toString().padStart(2, '0');
-                return { time: `${h12}:${mStr}`, period };
-            };
-
             const addMember = () => { if(newMemberName.value) { members.value.push({name:newMemberName.value, avatar:''}); newMemberName.value=''; showMemberModal.value=false; }};
             const deleteMember = (idx) => { if(confirm('刪除?')) members.value.splice(idx,1); };
             const updateMemberAvatar = (e, idx) => { const f=e.target.files[0]; if(f){ const r=new FileReader(); r.onload=(e)=>members.value[idx].avatar=e.target.result; r.readAsDataURL(f); }};
@@ -763,7 +686,7 @@
                 planType, todoList, addTodo, deleteTodo, shoppingList, wishlist, openItemModal, showItemModal, itemForm, itemFormType, handleItemImg, saveItem, deleteShopping, deleteWishlist,
                 itinerary, currDayIdx, currentEvents, addDay, deleteDay, editDayDate, getWeekName, getDayDate, openEventModal, showEventModal, eventForm, saveEvent, editEvent, isEditing, confirmDeleteEvent, openMap, translateCat, getCatColor, getCatIcon, editTransport, getTransportIcon, previousNightHotel,
                 expenses, showExpModal, expForm, openExpenseModal, saveExpense, deleteExpense, totalExpense, totalByMethod,
-                flights, showFlightModal, flightForm, openFlightModal, saveFlight, deleteFlightEdit, calculateDurationDisplay, isNextDay , formatTimeDisplay
+                flights, showFlightModal, flightForm, openFlightModal, saveFlight, deleteFlightEdit, calculateDurationDisplay, isNextDay
             };
         }
     }).mount('#app');
