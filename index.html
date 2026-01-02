@@ -576,7 +576,7 @@
 
     // 1. 取得目前行程頁面的日期字串 (YYYY-MM-DD)
     const curDateStr = itinerary.value[currDayIdx.value].date;
-
+                if (!curDateStr) return null;
     // 2. 轉換日期 (關鍵：設定時間為中午 12:00，避免時區轉換變成前一天)
     const d = new Date(curDateStr);
     d.setHours(12, 0, 0, 0); // 強制設定為中午
@@ -601,7 +601,15 @@
         return h.startDate <= prevDateStr && h.endDate > prevDateStr;
     }) || null;
 });
-            const currentEvents = computed(() => itinerary.value[currDayIdx.value].events || []);
+            const currentEvents = computed(() => {
+                // 先確認 itinerary 有資料，且指定的 day 存在
+                if (itinerary.value && itinerary.value[currDayIdx.value]) {
+                    // 確保 events 是一個陣列，如果不是就回傳空陣列
+                    return itinerary.value[currDayIdx.value].events || [];
+                }
+                // 如果找不到這一天，就回傳空陣列，避免報錯
+                return [];
+            });
             const openEventModal = () => { isEditing.value=false; Object.assign(eventForm, { id: Date.now(), name: '', time: '10:00', category: 'spot', ticket: '', openTime: '', note: '', transportMode: 'transport', travelTime: '' }); showEventModal.value = true; };
             const editEvent = (evt) => { isEditing.value=true; Object.assign(eventForm, evt); showEventModal.value = true; };
             const saveEvent = () => { const dayEvents = itinerary.value[currDayIdx.value].events; if(isEditing.value) { const idx = dayEvents.findIndex(e => e.id === eventForm.id); if(idx!==-1) dayEvents[idx] = {...eventForm}; } else dayEvents.push({...eventForm}); showEventModal.value = false; };
