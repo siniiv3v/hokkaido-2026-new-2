@@ -571,26 +571,36 @@
             const getWeekName = (d) => ['SUN','MON','TUE','WED','THU','FRI','SAT'][new Date(d).getDay()];
             const getDayDate = (d) => `${new Date(d).getDate()}/${new Date(d).getMonth()+1}`;
             const previousNightHotel = computed(() => {
-                // 防呆：如果行程資料還沒載入
-                if (!itinerary.value || !itinerary.value[currDayIdx.value]) return null;
+    // 防呆
+    if (!itinerary.value || !itinerary.value[currDayIdx.value]) return null;
 
-                // 1. 取得當前行程頁面的日期
-                const curDateStr = itinerary.value[currDayIdx.value].date;
-                const curDate = new Date(curDateStr);
+    // 1. 取得目前行程頁面的日期字串 (YYYY-MM-DD)
+    const curDateStr = itinerary.value[currDayIdx.value].date;
 
-                // 2. 計算「前一晚」的日期 (當前日期 - 1天)
-                // 例如: 今天是 1/24，我們想知道 1/23 晚上睡哪裡
-                const prevDate = new Date(curDate);
-                prevDate.setDate(curDate.getDate() - 1);
-                const prevDateStr = prevDate.toISOString().split('T')[0];
+    // 2. 轉換日期 (關鍵：設定時間為中午 12:00，避免時區轉換變成前一天)
+    const d = new Date(curDateStr);
+    d.setHours(12, 0, 0, 0); // 強制設定為中午
+    
+    // 3. 減去一天
+    d.setDate(d.getDate() - 1);
+    
+    // 4. 轉回 YYYY-MM-DD 格式
+    const prevDateStr = d.toISOString().split('T')[0];
 
-                // 3. 比對住宿列表
-                // 條件：住宿開始日 <= 前一晚 且 住宿結束日 > 前一晚
-                return hotels.value.find(h => {
-                    if (!h.startDate || !h.endDate) return false;
-                    return h.startDate <= prevDateStr && h.endDate > prevDateStr;
-                }) || null; // 找不到則回傳 null (顯示'尚未安排住宿')
-            });
+    // Debug 用：您可以在 Console (F12) 看到它正在找哪一天的住宿
+    // console.log(`Day ${currDayIdx.value + 1} (${curDateStr}) 的前一晚是: ${prevDateStr}`);
+
+    // 5. 比對住宿
+    return hotels.value.find(h => {
+        // 如果這個飯店還沒設定過日期，就跳過
+        if (!h.startDate || !h.endDate) return false;
+        
+        // 邏輯：(入住日期 <= 前一晚) 且 (退房日期 > 前一晚)
+        // 例如：前一晚是 1/23。飯店訂 1/23~1/25。
+        // 1/23 <= 1/23 (符合) 且 1/25 > 1/23 (符合) -> 抓到這間
+        return h.startDate <= prevDateStr && h.endDate > prevDateStr;
+    }) || null;
+});
             const currentEvents = computed(() => itinerary.value[currDayIdx.value].events || []);
             const openEventModal = () => { isEditing.value=false; Object.assign(eventForm, { id: Date.now(), name: '', time: '10:00', category: 'spot', ticket: '', openTime: '', note: '', transportMode: 'transport', travelTime: '' }); showEventModal.value = true; };
             const editEvent = (evt) => { isEditing.value=true; Object.assign(eventForm, evt); showEventModal.value = true; };
