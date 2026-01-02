@@ -356,6 +356,40 @@
                                  </button>
                              </div>
                         </div>
+                        <!-- 景點卡片與時間軸 -->
+                        <div class="flex items-start relative z-10 cursor-grab active:cursor-grabbing">
+                            <!-- 修改開始：左側時間顯示 (寬度改為 w-14 以容納文字) -->
+                            <div class="w-14 flex flex-col items-center shrink-0 pt-1 relative">
+                                <!-- 時間方塊 -->
+                                <div class="w-14 h-14 rounded-2xl bg-stone-800 text-white shadow-lg flex flex-col items-center justify-center border-2 border-white ring-1 ring-stone-100 z-10">
+                                    <span class="text-sm font-bold leading-none mb-0.5 tracking-tight font-sans">
+                                        {{ formatTimeDisplay(event.time).time }}
+                                    </span>
+                                    <span class="text-[10px] font-medium opacity-60 leading-none tracking-widest uppercase">
+                                        {{ formatTimeDisplay(event.time).period }}
+                                    </span>
+                                </div>
+                                <!-- 垂直連接線 (自動置中) -->
+                                <div v-if="idx < currentEvents.length - 1" class="w-0.5 h-full bg-stone-300 absolute top-12 left-1/2 -translate-x-1/2 -z-10"></div>
+                            </div>
+                            <!-- 修改結束 -->
+
+                            <!-- 右側卡片 (保持原本邏輯，但 margin-left 微調以配合變寬的時間軸) -->
+                            <div class="ml-3 flex-1 bg-white rounded-[1.5rem] p-4 shadow-soft active:scale-[0.99] transition-transform border border-stone-50 relative overflow-hidden" @click="editEvent(event)">
+                                <!-- ... (卡片內部內容保持不變) ... -->
+                                <div class="flex justify-between items-start mb-2">
+                                    <span :class="getCatColor(event.category)" class="text-[10px] text-white px-2 py-0.5 rounded-lg font-bold shadow-sm tracking-wide"><i :class="getCatIcon(event.category)" class="mr-1"></i>{{ translateCat(event.category) }}</span>
+                                    <button @click.stop="openMap(event.name)" class="w-8 h-8 rounded-full bg-stone-100 text-stone-600 hover:bg-blue-50 hover:text-blue-500 flex items-center justify-center transition-colors"><i class="fa-solid fa-location-arrow text-xs"></i></button>
+                                </div>
+                                <h3 class="font-bold text-lg text-muji-text leading-tight mb-2">{{ event.name }}</h3>
+                                <div class="flex flex-wrap gap-2 mb-3">
+                                    <div v-if="['spot','food','shopping'].includes(event.category) && event.openTime" class="text-[10px] text-stone-500 bg-stone-50 px-2 py-1 rounded-md"><i class="fa-regular fa-clock mr-1 text-stone-400"></i>{{ event.openTime }}</div>
+                                    <div v-if="event.category === 'spot' && event.ticket" class="text-[10px] text-stone-500 bg-stone-50 px-2 py-1 rounded-md"><i class="fa-solid fa-ticket mr-1 text-stone-400"></i>{{ event.ticket }}</div>
+                                </div>
+                                <p v-if="event.note" class="text-xs text-stone-400 bg-stone-50/50 p-2 rounded-xl border border-stone-100/50 line-clamp-2">{{ event.note }}</p>
+                                <div class="absolute right-2 bottom-2 text-stone-200 opacity-50"><i class="fa-solid fa-grip-lines"></i></div>
+                            </div>
+                        </div>                        
                         <button @click="editTransport(0, true)" class="flex items-center gap-1 bg-white px-2 py-1 rounded-full shadow-sm"><i :class="getTransportIcon(currentEvents[0].transportMode || 'transport')" class="text-muji-accent"></i><span class="font-bold">{{ currentEvents[0].travelTime || '設定交通' }}</span></button>
                     </div>
                 </div>
