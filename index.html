@@ -571,7 +571,7 @@
             const getWeekName = (d) => ['SUN','MON','TUE','WED','THU','FRI','SAT'][new Date(d).getDay()];
             const getDayDate = (d) => `${new Date(d).getDate()}/${new Date(d).getMonth()+1}`;
 
-            // 1. 修正後的住宿日期計算 (計算前一晚是幾號)
+            // 1. 修正後的住宿日期計算 (含 Debug 訊息)
             const previousNightHotel = computed(() => {
                 // 安全檢查
                 if (!itinerary.value || !itinerary.value[currDayIdx.value]) return null;
@@ -580,10 +580,9 @@
 
                 let prevDateStr = '';
                 try {
-                    // 解析日期 (YYYY-MM-DD)
                     const parts = curDateStr.split(/[-/]/).map(Number);
                     if (parts.length === 3) {
-                        // 設定為中午 12 點計算，避開時區問題
+                        // 設定為中午 12 點計算
                         const d = new Date(parts[0], parts[1] - 1, parts[2], 12, 0, 0);
                         d.setTime(d.getTime() - 86400000); // 減一天
                         const y = d.getFullYear();
@@ -592,19 +591,39 @@
                         prevDateStr = `${y}-${m}-${dd}`;
                     }
                 } catch (e) {
+                    console.error("日期計算錯誤", e);
                     return null;
                 }
                 
-                // console.log(`Day ${currDayIdx.value+1} 前一晚是 ${prevDateStr}`);
+                // ★★★ 這裡就是 Debug 訊息 ★★★
+                console.log(`------------- 除錯開始 -------------`);
+                console.log(`行程日期: ${curDateStr}`);
+                console.log(`前一晚是: ${prevDateStr}`);
+                console.log(`目前有的飯店資料:`, hotels.value); // 這會印出陣列，請點開來看 startDate 有沒有值
 
-                // 比對住宿資料 (入住 <= 前一晚 < 退房)
-                return hotels.value.find(h => {
-                    if (!h.startDate || !h.endDate) return false;
-                    return h.startDate <= prevDateStr && h.endDate > prevDateStr;
-                }) || null;
+                // 比對住宿資料
+                const found = hotels.value.find(h => {
+                    // 如果飯店沒有設定日期，印出警告
+                    if (!h.startDate || !h.endDate) {
+                        // console.log(`飯店 [${h.name}] 略過：因為沒有設定日期`);
+                        return false;
+                    }
+                    
+                    // 比對邏輯
+                    const isMatch = (h.startDate <= prevDateStr && h.endDate > prevDateStr);
+                    if (isMatch) {
+                        console.log(`>>> 成功對應！找到飯店: ${h.name} (入住: ${h.startDate} ~ 退房: ${h.endDate})`);
+                    }
+                    return isMatch;
+                });
+                
+                if (!found) console.log(`((( 這一晚沒有找到對應的住宿 )))`);
+                console.log(`----------------------------------`);
+
+                return found || null;
             });
 
-            // 2. 修正後的當日行程列表 (補回這個變數，並加上防呆)
+            // 2. 修正後的當日行程列表 (保持防呆)
             const currentEvents = computed(() => {
                 if (itinerary.value && itinerary.value[currDayIdx.value]) {
                     return itinerary.value[currDayIdx.value].events || [];
