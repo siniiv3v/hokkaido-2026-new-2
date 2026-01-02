@@ -1,4 +1,4 @@
-
+```html
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
@@ -307,50 +307,42 @@
                 <div id="itinerary-list" class="space-y-0">
                     <div v-for="(event, idx) in currentEvents" :key="event.id" :data-id="event.id" class="relative group">
                         
-                        <!-- 景點之間的交通資訊顯示區塊 (變更為藍色/細緻版) -->
-                        <div v-if="idx > 0" class="flex gap-4 min-h-[2.5rem] relative z-0 my-1">
+                        <!-- 景點之間的交通資訊顯示區塊 (修改後) -->
+                        <div v-if="idx > 0" class="flex gap-4 min-h-[3rem] relative z-0">
                              <div class="w-12 flex justify-center h-full"><div class="w-0.5 h-full bg-stone-300"></div></div>
-                             <div class="flex-1 flex items-center">
+                             <div class="flex-1 flex items-center py-2">
                                  <button @click="openTransportModal(idx)" 
-                                         class="w-full flex items-center gap-3 bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-lg text-xs text-blue-900 transition-all border border-blue-100 hover:border-blue-300 group/trans shadow-sm">
+                                         class="w-full flex items-center gap-3 bg-stone-50 hover:bg-white px-4 py-2 rounded-xl text-xs text-stone-500 transition-all border border-transparent hover:border-stone-200 group/trans">
                                      <!-- 如果有設定交通資訊 -->
                                      <template v-if="event.transport">
-                                         <!-- Icon 變小 (w-6 h-6) 且變藍色 -->
-                                         <div class="w-6 h-6 rounded-full bg-blue-200 text-blue-600 flex items-center justify-center shrink-0">
-                                             <i :class="getTransportIcon(event.transport.mode)" class="text-[10px]"></i>
+                                         <div class="w-8 h-8 rounded-full bg-stone-200 text-stone-600 flex items-center justify-center shrink-0">
+                                             <i :class="getTransportIcon(event.transport.mode)"></i>
                                          </div>
-                                         <div class="flex-1 text-left flex items-center justify-between gap-2 overflow-hidden">
-                                             <!-- 左側：地點與圖示 -->
-                                             <div class="flex items-center gap-2 truncate min-w-0">
-                                                 <p class="text-[10px] text-blue-800/70 truncate font-medium">
-                                                     <span v-if="event.transport.depLoc">{{ event.transport.depLoc }}</span>
-                                                     <span v-else>起點</span>
-                                                     <i class="fa-solid fa-caret-right mx-1 opacity-50"></i>
-                                                     <span v-if="event.transport.arrLoc">{{ event.transport.arrLoc }}</span>
-                                                     <span v-else>終點</span>
-                                                 </p>
+                                         <div class="flex-1 text-left">
+                                             <div class="flex items-center gap-2 mb-0.5">
+                                                 <span class="font-bold text-muji-text">{{ event.transport.depTime }}</span>
+                                                 <i class="fa-solid fa-arrow-right-long text-[10px] text-stone-300"></i>
+                                                 <span class="font-bold text-muji-text">{{ event.transport.arrTime }}</span>
+                                                 <span class="text-[10px] bg-stone-200 px-1.5 rounded text-stone-500 font-bold ml-1">{{ event.transport.duration }}</span>
                                              </div>
-                                             
-                                             <!-- 右側：時間與耗時 -->
-                                             <div class="flex items-center gap-2 shrink-0">
-                                                 <span class="font-bold text-blue-900 text-[10px] font-mono">{{ event.transport.depTime }}</span>
-                                                 <i class="fa-solid fa-arrow-right text-[8px] text-blue-300"></i>
-                                                 <span class="font-bold text-blue-900 text-[10px] font-mono">{{ event.transport.arrTime }}</span>
-                                                 <span class="text-[9px] bg-white px-1.5 py-0.5 rounded text-blue-600 font-bold border border-blue-100 shadow-sm">{{ event.transport.duration }}</span>
-                                             </div>
+                                             <p class="text-[10px] text-stone-400 truncate">
+                                                 <span v-if="event.transport.depLoc">{{ event.transport.depLoc }}</span>
+                                                 <i v-if="event.transport.depLoc && event.transport.arrLoc" class="fa-solid fa-caret-right mx-1"></i>
+                                                 <span v-if="event.transport.arrLoc">{{ event.transport.arrLoc }}</span>
+                                             </p>
                                          </div>
-                                         <i class="fa-solid fa-pen text-blue-300 opacity-0 group-hover/trans:opacity-100 transition-opacity text-[10px]"></i>
+                                         <i class="fa-solid fa-pen text-stone-300 opacity-0 group-hover/trans:opacity-100 transition-opacity"></i>
                                      </template>
                                      
                                      <!-- 如果沒有設定 -->
                                      <template v-else>
-                                         <div class="w-5 h-5 rounded-full bg-blue-200/50 text-blue-400 flex items-center justify-center"><i class="fa-solid fa-plus text-[8px]"></i></div>
-                                         <span class="text-blue-400/70 font-bold text-[10px]">新增交通</span>
+                                         <div class="w-6 h-6 rounded-full bg-stone-200 text-stone-400 flex items-center justify-center"><i class="fa-solid fa-plus text-[10px]"></i></div>
+                                         <span class="text-stone-400 font-bold">設定交通方式</span>
                                      </template>
                                  </button>
                              </div>
                         </div>
-                        
+
                         <!-- 景點卡片與時間軸 -->
                         <div class="flex items-start relative z-10 cursor-grab active:cursor-grabbing">
                             <!-- 修改開始：左側時間顯示 (寬度改為 w-14 以容納文字) -->
@@ -525,105 +517,7 @@
     <!-- Other Modals -->
     <div v-if="showItemModal" class="fixed inset-0 z-[60] flex items-end justify-center bg-stone-900/30 backdrop-blur-sm" @click.self="showItemModal=false"><div class="bg-white w-full rounded-t-[2rem] p-6 slide-up pb-safe-bottom"><h3 class="text-center font-bold text-lg mb-6">{{ itemFormType === 'shopping' ? '新增購物清單' : '新增想去景點' }}</h3><label class="block w-full h-32 bg-stone-50 rounded-2xl border-2 border-dashed border-stone-200 mb-4 flex items-center justify-center relative overflow-hidden"><img v-if="itemForm.image" :src="itemForm.image" class="w-full h-full object-cover"><div v-else class="text-stone-400 flex flex-col items-center"><i class="fa-solid fa-camera mb-1"></i><span class="text-xs">上傳照片</span></div><input type="file" accept="image/*" @change="handleItemImg" class="hidden"></label><input v-model="itemForm.name" placeholder="名稱" class="w-full p-4 bg-stone-50 rounded-2xl mb-3 font-bold"><input v-if="itemFormType==='shopping'" type="number" v-model="itemForm.price" placeholder="價格 (JPY)" class="w-full p-4 bg-stone-50 rounded-2xl mb-6"><input v-else v-model="itemForm.note" placeholder="備註 / 說明" class="w-full p-4 bg-stone-50 rounded-2xl mb-6"><button @click="saveItem" class="w-full bg-stone-800 text-white py-4 rounded-2xl font-bold shadow-lg">加入</button></div></div>
     <div v-if="showExpModal" class="fixed inset-0 z-[60] flex items-end justify-center bg-stone-900/30 backdrop-blur-sm" @click.self="showExpModal=false"><div class="bg-white w-full rounded-t-[2rem] p-6 slide-up pb-safe-bottom"><h3 class="text-center font-bold text-lg mb-4">記一筆</h3><div class="bg-stone-100 rounded-2xl p-4 mb-4 text-center"><input type="number" inputmode="decimal" v-model="expForm.amount" placeholder="0" class="bg-transparent text-4xl font-bold text-center w-full text-muji-text"><span class="text-xs text-stone-400">JPY</span></div><input v-model="expForm.title" placeholder="項目" class="w-full p-4 bg-stone-50 rounded-2xl mb-3 font-bold"><div class="flex gap-2 overflow-x-auto hide-scrollbar mb-4"><button v-for="m in members" :key="m.name" @click="expForm.payer=m.name" :class="expForm.payer===m.name ? 'bg-stone-800 text-white' : 'bg-stone-100 text-stone-400'" class="px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-colors">{{ m.name }}</button></div><div class="grid grid-cols-2 gap-3 mb-4"><button @click="expForm.method='cash'" :class="expForm.method==='cash'?'bg-stone-200 ring-2 ring-stone-400':'bg-stone-50'" class="py-3 rounded-xl text-sm font-bold text-stone-600">現金</button><button @click="expForm.method='card'" :class="expForm.method==='card'?'bg-blue-100 ring-2 ring-blue-300 text-blue-600':'bg-stone-50'" class="py-3 rounded-xl text-sm font-bold text-stone-400">信用卡</button></div><div class="flex items-center justify-between p-4 bg-stone-50 rounded-2xl mb-6"><span class="font-bold text-stone-600 text-sm">公費 (大家平分)</span><div @click="expForm.isPublic=!expForm.isPublic" :class="expForm.isPublic?'bg-green-400':'bg-stone-300'" class="w-10 h-6 rounded-full relative transition-colors"><div :class="expForm.isPublic?'left-5':'left-1'" class="absolute top-1 w-4 h-4 bg-white rounded-full transition-all"></div></div></div><button @click="saveExpense" class="w-full bg-stone-800 text-white py-4 rounded-2xl font-bold shadow-lg">儲存</button></div></div>
-<!-- Event Modal (新增/編輯行程視窗) -->
-    <div v-if="showEventModal" class="fixed inset-0 z-[60] flex items-end justify-center bg-stone-900/40 backdrop-blur-sm" @click.self="showEventModal=false">
-        <div class="bg-[#F9F9F7] w-full rounded-t-[2rem] p-6 slide-up pb-safe-bottom max-h-[90vh] overflow-y-auto">
-            <div class="w-12 h-1 bg-stone-300 rounded-full mx-auto mb-6"></div>
-            <h3 class="text-center font-bold text-lg mb-6 text-stone-700">{{ isEditing ? '編輯行程' : '新增行程' }}</h3>
-            
-            <div class="space-y-5">
-                <!-- 1. 分類選擇 -->
-                <div>
-                    <label class="text-xs font-bold text-stone-400 ml-1 mb-2 block">分類</label>
-                    <div class="grid grid-cols-3 gap-2">
-                        <button v-for="c in ['spot','food','shopping','hotel','transport','other']" :key="c" @click="eventForm.category=c" 
-                            :class="eventForm.category===c ? 'bg-stone-800 text-white ring-2 ring-stone-800 ring-offset-1' : 'bg-white text-stone-400 border border-stone-200'" 
-                            class="py-2.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1">
-                            <i :class="getCatIcon(c)"></i> {{ translateCat(c) }}
-                        </button>
-                    </div>
-                </div>
-
-                <!-- 2. 名稱與地圖 -->
-                <div>
-                    <label class="text-xs font-bold text-stone-400 ml-1 mb-1 block">名稱</label>
-                    <div class="relative">
-                        <input v-model="eventForm.name" placeholder="輸入地點名稱..." class="w-full p-4 bg-white rounded-2xl font-bold text-stone-700 shadow-sm border border-stone-100 focus:border-stone-400 transition-colors">
-                        <button v-if="eventForm.name" @click="openMap(eventForm.name)" class="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 hover:text-blue-500"><i class="fa-solid fa-map-location-dot"></i></button>
-                    </div>
-                </div>
-
-                <!-- ★★★ 新增：交通資訊區塊 (藍色風格) ★★★ -->
-                <div class="bg-blue-50/80 p-4 rounded-2xl border border-blue-100">
-                    <label class="text-xs font-bold text-blue-400 mb-3 block flex items-center gap-1"><i class="fa-solid fa-route"></i> 交通方式 (前往此點)</label>
-                    
-                    <!-- 交通工具 Icon -->
-                    <div class="grid grid-cols-5 gap-2 mb-4">
-                        <button v-for="type in transportTypes" :key="type.id" 
-                                @click="eventForm.transportMode = type.id" 
-                                :class="eventForm.transportMode === type.id ? 'bg-blue-500 text-white shadow-md transform scale-105' : 'bg-white text-blue-300 border border-blue-100 hover:bg-blue-50'" 
-                                class="aspect-square rounded-xl flex flex-col items-center justify-center gap-1 transition-all">
-                            <i :class="type.icon" class="text-lg"></i>
-                            <span class="text-[9px] font-bold">{{ type.name }}</span>
-                        </button>
-                    </div>
-
-                    <!-- 交通地點 -->
-                    <div class="grid grid-cols-2 gap-2 mb-2">
-                        <div>
-                            <span class="text-[9px] text-blue-400 font-bold ml-1 mb-1 block">上車地點</span>
-                            <input v-model="eventForm.transDepLoc" placeholder="起點" class="w-full p-2 bg-white rounded-xl text-xs font-bold text-blue-900 border border-blue-100 focus:border-blue-300">
-                        </div>
-                        <div>
-                            <span class="text-[9px] text-blue-400 font-bold ml-1 mb-1 block">下車地點</span>
-                            <input v-model="eventForm.transArrLoc" placeholder="終點" class="w-full p-2 bg-white rounded-xl text-xs font-bold text-blue-900 border border-blue-100 focus:border-blue-300">
-                        </div>
-                    </div>
-
-                    <!-- 交通時間 -->
-                    <div class="grid grid-cols-2 gap-2">
-                        <div>
-                            <span class="text-[9px] text-blue-400 font-bold ml-1 mb-1 block">上車時間</span>
-                            <input type="time" v-model="eventForm.transDepTime" class="w-full p-2 bg-white rounded-xl text-xs font-bold text-center text-blue-900 border border-blue-100">
-                        </div>
-                        <div>
-                            <span class="text-[9px] text-blue-400 font-bold ml-1 mb-1 block">下車時間</span>
-                            <input type="time" v-model="eventForm.transArrTime" class="w-full p-2 bg-white rounded-xl text-xs font-bold text-center text-blue-900 border border-blue-100">
-                        </div>
-                    </div>
-                </div>
-                <!-- ★★★ 交通區塊結束 ★★★ -->
-
-                <!-- 3. 開始時間 (原本的行程時間) -->
-                <div>
-                    <label class="text-xs font-bold text-stone-400 ml-1 mb-1 block">抵達/開始活動時間</label>
-                    <input type="time" v-model="eventForm.time" class="w-full p-4 bg-white rounded-2xl font-bold text-center text-xl text-stone-700 shadow-sm border border-stone-100">
-                </div>
-
-                <!-- 4. 其他資訊 -->
-                <div v-if="['spot','food','shopping','hotel'].includes(eventForm.category)" class="fade-in">
-                    <label class="text-xs font-bold text-stone-400 ml-1 mb-1 block">營業/入住時間</label>
-                    <input v-model="eventForm.openTime" placeholder="例如: 09:00 - 22:00" class="w-full p-4 bg-white rounded-2xl text-sm shadow-sm border border-stone-100">
-                </div>
-                
-                <div v-if="eventForm.category === 'spot'" class="fade-in">
-                    <label class="text-xs font-bold text-stone-400 ml-1 mb-1 block">門票 / 預算</label>
-                    <input v-model="eventForm.ticket" placeholder="例如: ¥2000 / 免費" class="w-full p-4 bg-white rounded-2xl text-sm shadow-sm border border-stone-100">
-                </div>
-                
-                <div>
-                    <label class="text-xs font-bold text-stone-400 ml-1 mb-1 block">特色 & 備註</label>
-                    <textarea v-model="eventForm.note" placeholder="例如: 必吃霜淇淋、記得帶護照..." class="w-full p-4 bg-white rounded-2xl h-24 text-sm text-stone-600 resize-none shadow-sm border border-stone-100"></textarea>
-                </div>
-            </div>
-
-            <!-- 按鈕區 -->
-            <div class="flex gap-3 mt-8">
-                <button v-if="isEditing" @click="confirmDeleteEvent" class="w-14 bg-red-50 text-red-400 rounded-2xl flex items-center justify-center border border-red-100 active:scale-95 transition-transform"><i class="fa-solid fa-trash"></i></button>
-                <button @click="saveEvent" class="flex-1 bg-stone-800 text-white py-4 rounded-2xl font-bold shadow-lg shadow-stone-300/50 active:scale-[0.98] transition-transform flex items-center justify-center gap-2"><i class="fa-solid fa-check"></i> {{ isEditing ? '儲存變更' : '加入行程' }}</button>
-            </div>
-        </div>
-    </div>
+    <div v-if="showEventModal" class="fixed inset-0 z-[60] flex items-end justify-center bg-stone-900/40 backdrop-blur-sm" @click.self="showEventModal=false"><div class="bg-[#F9F9F7] w-full rounded-t-[2rem] p-6 slide-up pb-safe-bottom max-h-[90vh] overflow-y-auto"><div class="w-12 h-1 bg-stone-300 rounded-full mx-auto mb-6"></div><h3 class="text-center font-bold text-lg mb-6 text-stone-700">{{ isEditing ? '編輯行程' : '新增行程' }}</h3><div class="space-y-5"><div><label class="text-xs font-bold text-stone-400 ml-1 mb-2 block">分類</label><div class="grid grid-cols-3 gap-2"><button v-for="c in ['spot','food','shopping','hotel','transport','other']" :key="c" @click="eventForm.category=c" :class="eventForm.category===c ? 'bg-stone-800 text-white ring-2 ring-stone-800 ring-offset-1' : 'bg-white text-stone-400 border border-stone-200'" class="py-2.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1"><i :class="getCatIcon(c)"></i> {{ translateCat(c) }}</button></div></div><div><label class="text-xs font-bold text-stone-400 ml-1 mb-1 block">名稱</label><div class="relative"><input v-model="eventForm.name" placeholder="輸入地點名稱..." class="w-full p-4 bg-white rounded-2xl font-bold text-stone-700 shadow-sm border border-stone-100 focus:border-stone-400 transition-colors"><button v-if="eventForm.name" @click="openMap(eventForm.name)" class="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 hover:text-blue-500"><i class="fa-solid fa-map-location-dot"></i></button></div></div><div><label class="text-xs font-bold text-stone-400 ml-1 mb-1 block">開始時間</label><input type="time" v-model="eventForm.time" class="w-full p-4 bg-white rounded-2xl font-bold text-center text-xl text-stone-700 shadow-sm border border-stone-100"></div><div v-if="['spot','food','shopping','hotel'].includes(eventForm.category)" class="fade-in"><label class="text-xs font-bold text-stone-400 ml-1 mb-1 block">營業/入住時間</label><input v-model="eventForm.openTime" placeholder="例如: 09:00 - 22:00" class="w-full p-4 bg-white rounded-2xl text-sm shadow-sm border border-stone-100"></div><div v-if="eventForm.category === 'spot'" class="fade-in"><label class="text-xs font-bold text-stone-400 ml-1 mb-1 block">門票 / 預算</label><input v-model="eventForm.ticket" placeholder="例如: ¥2000 / 免費" class="w-full p-4 bg-white rounded-2xl text-sm shadow-sm border border-stone-100"></div><div><label class="text-xs font-bold text-stone-400 ml-1 mb-1 block">特色 & 備註</label><textarea v-model="eventForm.note" placeholder="例如: 必吃霜淇淋、記得帶護照..." class="w-full p-4 bg-white rounded-2xl h-24 text-sm text-stone-600 resize-none shadow-sm border border-stone-100"></textarea></div></div><div class="flex gap-3 mt-8"><button v-if="isEditing" @click="confirmDeleteEvent" class="w-14 bg-red-50 text-red-400 rounded-2xl flex items-center justify-center border border-red-100 active:scale-95 transition-transform"><i class="fa-solid fa-trash"></i></button><button @click="saveEvent" class="flex-1 bg-stone-800 text-white py-4 rounded-2xl font-bold shadow-lg shadow-stone-300/50 active:scale-[0.98] transition-transform flex items-center justify-center gap-2"><i class="fa-solid fa-check"></i> {{ isEditing ? '儲存變更' : '加入行程' }}</button></div></div></div>
     <div v-if="showMemberModal" class="fixed inset-0 z-[60] flex items-end justify-center bg-stone-900/30 backdrop-blur-sm" @click.self="showMemberModal=false"><div class="bg-white w-full rounded-t-[2rem] p-6 slide-up pb-safe-bottom"><h3 class="text-center font-bold text-lg mb-6">新增旅伴</h3><div class="bg-stone-50 rounded-2xl p-6 mb-6 flex flex-col items-center justify-center border border-stone-100"><div class="w-20 h-20 rounded-full bg-stone-200 mb-4 flex items-center justify-center text-white text-3xl shadow-inner"><i class="fa-solid fa-user"></i></div><p class="text-xs text-stone-400">頭像可在新增後點擊圖片上傳</p></div><input v-model="newMemberName" placeholder="旅伴名字 (例如: 小明)" class="w-full p-4 bg-stone-50 rounded-2xl mb-6 font-bold text-center text-lg placeholder-stone-300 focus:bg-white focus:ring-2 focus:ring-stone-100 transition-all"><button @click="addMember" class="w-full bg-stone-800 text-white py-4 rounded-2xl font-bold shadow-lg active:scale-[0.98] transition-transform">確認加入</button></div></div>
     <div v-if="showHotelModal" class="fixed inset-0 z-[60] flex items-end justify-center bg-stone-900/30 backdrop-blur-sm" @click.self="showHotelModal=false">
         <div class="bg-white w-full rounded-t-[2rem] p-6 slide-up pb-safe-bottom">
@@ -725,12 +619,21 @@
             const showItemModal = ref(false); const itemFormType = ref('shopping'); const itemForm = reactive({name:'', price:'', note:'', image:''});
             const showExpModal = ref(false); const expForm = reactive({amount:'', title:'', payer:'我', method:'cash', isPublic:true, category:'food'});
             const showEventModal = ref(false); const isEditing = ref(false); const currDayIdx = ref(0); const planType = ref('todo');
+            const eventForm = reactive({ id: null, name: '', time: '10:00', category: 'spot', ticket: '', openTime: '', note: '', transportMode: 'transport', travelTime: '' });
             const showFlightModal = ref(false); const flightForm = reactive({ idx: null, isEdit: false, type: '去程', flightNo: '', depCode: '', arrCode: '', depTime: '', arrTime: '' });
             
-            // --- Transport Definitions ---
-            const showTransportModal = ref(false); // 雖然我們現在整合到 EventModal，但保留這個變數以免報錯
-            const transportForm = reactive({ idx: null, mode: 'subway', depLoc: '', arrLoc: '', depTime: '', arrTime: '' }); // 同上，為了相容性保留
-            
+            // 新增：時間格式化 helper (24h -> 12h AM/PM)
+            const formatTimeDisplay = (t) => {
+                if (!t) return { time: '--:--', period: '--' };
+                const [h, m] = t.split(':').map(Number);
+                const period = h >= 12 ? 'PM' : 'AM';
+                const h12 = h % 12 || 12; // 將 0 點或 12 點轉為 12
+                const mStr = m.toString().padStart(2, '0');
+                return { time: `${h12}:${mStr}`, period };
+            };
+          // --- Transport Logic (新增/修改) ---
+            const showTransportModal = ref(false);
+            const transportForm = reactive({ idx: null, mode: 'subway', depLoc: '', arrLoc: '', depTime: '', arrTime: '' });
             const transportTypes = [
                 { id: 'subway', name: '地鐵', icon: 'fa-solid fa-train-subway' },
                 { id: 'bus', name: '巴士', icon: 'fa-solid fa-bus' },
@@ -739,28 +642,67 @@
                 { id: 'car', name: '自駕', icon: 'fa-solid fa-car' }
             ];
 
-            // --- Main Event Form (包含交通欄位) ---
-            const eventForm = reactive({ 
-                id: null, name: '', time: '10:00', category: 'spot', ticket: '', openTime: '', note: '', 
-                // 交通欄位整合在此
-                transportMode: 'subway', transDepLoc: '', transArrLoc: '', transDepTime: '', transArrTime: '' 
-            });
+            const getTransportIcon = (m) => {
+                const t = transportTypes.find(t => t.id === m);
+                return t ? t.icon : 'fa-solid fa-arrow-right';
+            };
+
+            const openTransportModal = (idx) => {
+                const events = itinerary.value[currDayIdx.value].events;
+                const evt = events[idx];
+                
+                // 初始化表單
+                transportForm.idx = idx;
+                
+                // 如果已經有資料，就載入
+                if (evt.transport) {
+                    Object.assign(transportForm, evt.transport);
+                } else {
+                    // 預設值
+                    const prevEvt = idx > 0 ? events[idx-1] : { name: '前一個地點', time: '09:00' };
+                    transportForm.mode = 'subway';
+                    transportForm.depLoc = idx > 0 ? prevEvt.name : (previousNightHotel.value?.name || '飯店');
+                    transportForm.arrLoc = evt.name;
+                    transportForm.depTime = idx > 0 ? prevEvt.time : '09:00';
+                    transportForm.arrTime = evt.time;
+                }
+                showTransportModal.value = true;
+            };
+
+            const saveTransport = () => {
+                const events = itinerary.value[currDayIdx.value].events;
+                const idx = transportForm.idx;
+                if (idx !== null && events[idx]) {
+                    // 計算時長
+                    const duration = calcDurationStr(transportForm.depTime, transportForm.arrTime);
+                    
+                    // 儲存到 event 物件中的 transport 屬性
+                    events[idx].transport = {
+                        mode: transportForm.mode,
+                        depLoc: transportForm.depLoc,
+                        arrLoc: transportForm.arrLoc,
+                        depTime: transportForm.depTime,
+                        arrTime: transportForm.arrTime,
+                        duration: duration
+                    };
+                }
+                showTransportModal.value = false;
+            };
+
+            const deleteTransport = () => {
+                if (confirm('確定要移除此交通資訊嗎？')) {
+                    const events = itinerary.value[currDayIdx.value].events;
+                    if (transportForm.idx !== null && events[transportForm.idx]) {
+                        delete events[transportForm.idx].transport;
+                    }
+                    showTransportModal.value = false;
+                }
+            };
 
             // Helper for calculations
             const calcDurationStr = (start, end) => { if(!start || !end) return '--'; const [h1, m1] = start.split(':').map(Number); const [h2, m2] = end.split(':').map(Number); let mins = (h2 * 60 + m2) - (h1 * 60 + m1); if (mins < 0) mins += 24 * 60; const h = Math.floor(mins / 60); const m = mins % 60; return `${h > 0 ? h+'h' : ''}${m}m`; };
             const calculateDurationDisplay = (start, end) => calcDurationStr(start, end);
             const isNextDay = (start, end) => { if(!start || !end) return false; const [h1, m1] = start.split(':').map(Number); const [h2, m2] = end.split(':').map(Number); return (h2 * 60 + m2) < (h1 * 60 + m1); };
-            
-            // Time Formatter for UI (10:00 AM)
-            const formatTimeDisplay = (t) => {
-                if (!t) return { time: '--:--', period: '--' };
-                const [h, m] = t.split(':').map(Number);
-                const period = h >= 12 ? 'PM' : 'AM';
-                const h12 = h % 12 || 12;
-                const mStr = m.toString().padStart(2, '0');
-                return { time: `${h12}:${mStr}`, period };
-            };
-
             const openFlightModal = (flight = null, idx = null) => { if (flight) { flightForm.isEdit = true; flightForm.idx = idx; Object.assign(flightForm, flight); } else { flightForm.isEdit = false; flightForm.idx = null; Object.assign(flightForm, { type: '去程', flightNo: '', depCode: '', arrCode: '', depTime: '10:00', arrTime: '14:00' }); } showFlightModal.value = true; };
             const saveFlight = () => { const duration = calcDurationStr(flightForm.depTime, flightForm.arrTime); const flightData = { type: flightForm.type, flightNo: flightForm.flightNo.toUpperCase(), depCode: flightForm.depCode.toUpperCase(), arrCode: flightForm.arrCode.toUpperCase(), depTime: flightForm.depTime, arrTime: flightForm.arrTime, duration }; if (flightForm.isEdit && flightForm.idx !== null) flights.value[flightForm.idx] = { ...flightData, id: flights.value[flightForm.idx].id }; else flights.value.push({ ...flightData, id: Date.now() }); showFlightModal.value = false; };
             const deleteFlightEdit = () => { if (confirm('刪除航班?')) { if (flightForm.idx !== null) flights.value.splice(flightForm.idx, 1); showFlightModal.value = false; } };
@@ -810,56 +752,9 @@
                 return [];
             });
             
-            const openEventModal = () => { 
-                isEditing.value=false; 
-                Object.assign(eventForm, { 
-                    id: Date.now(), name: '', time: '10:00', category: 'spot', ticket: '', openTime: '', note: '', 
-                    transportMode: 'subway', transDepLoc: '', transArrLoc: '', transDepTime: '', transArrTime: '' 
-                }); 
-                showEventModal.value = true; 
-            };
-            
-            const editEvent = (evt) => { 
-                isEditing.value=true; 
-                Object.assign(eventForm, evt);
-                if (evt.transport) {
-                    eventForm.transportMode = evt.transport.mode || 'subway';
-                    eventForm.transDepLoc = evt.transport.depLoc || '';
-                    eventForm.transArrLoc = evt.transport.arrLoc || '';
-                    eventForm.transDepTime = evt.transport.depTime || '';
-                    eventForm.transArrTime = evt.transport.arrTime || '';
-                } else {
-                    eventForm.transportMode = 'subway';
-                    eventForm.transDepLoc = '';
-                    eventForm.transArrLoc = '';
-                    eventForm.transDepTime = '';
-                    eventForm.transArrTime = '';
-                }
-                showEventModal.value = true; 
-            };
-            
-            const saveEvent = () => { 
-                const dayEvents = itinerary.value[currDayIdx.value].events; 
-                const duration = calcDurationStr(eventForm.transDepTime, eventForm.transArrTime);
-                const transportData = {
-                    mode: eventForm.transportMode,
-                    depLoc: eventForm.transDepLoc,
-                    arrLoc: eventForm.transArrLoc,
-                    depTime: eventForm.transDepTime,
-                    arrTime: eventForm.transArrTime,
-                    duration: duration
-                };
-                const eventData = { ...eventForm, transport: transportData };
-
-                if(isEditing.value) { 
-                    const idx = dayEvents.findIndex(e => e.id === eventForm.id); 
-                    if(idx!==-1) dayEvents[idx] = eventData; 
-                } else { 
-                    dayEvents.push(eventData); 
-                } 
-                showEventModal.value = false; 
-            };
-            
+            const openEventModal = () => { isEditing.value=false; Object.assign(eventForm, { id: Date.now(), name: '', time: '10:00', category: 'spot', ticket: '', openTime: '', note: '', transportMode: 'transport', travelTime: '' }); showEventModal.value = true; };
+            const editEvent = (evt) => { isEditing.value=true; Object.assign(eventForm, evt); showEventModal.value = true; };
+            const saveEvent = () => { const dayEvents = itinerary.value[currDayIdx.value].events; if(isEditing.value) { const idx = dayEvents.findIndex(e => e.id === eventForm.id); if(idx!==-1) dayEvents[idx] = {...eventForm, transport: dayEvents[idx].transport}; } else dayEvents.push({...eventForm}); showEventModal.value = false; };
             const confirmDeleteEvent = () => { if(confirm("刪除行程?")) { const evts = itinerary.value[currDayIdx.value].events; const idx = evts.findIndex(e => e.id === eventForm.id); if(idx!==-1) evts.splice(idx,1); showEventModal.value=false; }};
             const addDay = () => { const d = new Date(itinerary.value[itinerary.value.length-1].date); d.setDate(d.getDate()+1); itinerary.value.push({date:d.toISOString().split('T')[0], events:[]}); };
             const deleteDay = (idx) => { if(itinerary.value.length>1 && confirm("刪除這一天?")) itinerary.value.splice(idx,1); };
@@ -869,18 +764,6 @@
             const getCatColor = (c) => ({'spot':'bg-blue-400', 'food':'bg-orange-400','transport':'bg-stone-500','shopping':'bg-pink-400','hotel':'bg-purple-400','other':'bg-gray-400'}[c]||'bg-stone-400');
             const getCatIcon = (c) => ({'spot':'fa-camera','food':'fa-utensils','transport':'fa-train','shopping':'fa-bag-shopping','hotel':'fa-bed','other':'fa-star'}[c]||'fa-circle');
             
-            // Transport Icons for UI
-            const getTransportIcon = (m) => {
-                const t = transportTypes.find(t => t.id === m);
-                return t ? t.icon : 'fa-solid fa-arrow-right';
-            };
-
-            // 保留給舊的獨立 transport modal 呼叫，避免舊的 HTML binding 報錯
-            const openTransportModal = (idx) => { 
-                const events = itinerary.value[currDayIdx.value].events;
-                editEvent(events[idx]); // 直接導向新版編輯視窗
-            };
-
             const openHotelModal = (isEdit, d=null) => { 
                 if(isEdit&&d) Object.assign(hotelForm, d); 
                 else Object.assign(hotelForm, { id:null, name:'', address:'', startDate:'', endDate:'', checkIn:'15:00', checkOut:'11:00', price:'', image:'' }); 
@@ -920,7 +803,7 @@
                 expenses, showExpModal, expForm, openExpenseModal, saveExpense, deleteExpense, totalExpense, totalByMethod,
                 flights, showFlightModal, flightForm, openFlightModal, saveFlight, deleteFlightEdit, calculateDurationDisplay, isNextDay,
                 // Transport related
-                showTransportModal, transportForm, transportTypes, openTransportModal, getTransportIcon, formatTimeDisplay
+                formatTimeDisplay,  showTransportModal, transportForm, transportTypes, openTransportModal, saveTransport, deleteTransport, getTransportIcon
             };
         }
     }).mount('#app');
