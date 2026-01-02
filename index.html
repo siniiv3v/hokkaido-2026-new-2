@@ -570,56 +570,48 @@
             watch(currentTab, (newTab) => { if(newTab === 'itinerary') initSortable(); });
             const getWeekName = (d) => ['SUN','MON','TUE','WED','THU','FRI','SAT'][new Date(d).getDay()];
             const getDayDate = (d) => `${new Date(d).getDate()}/${new Date(d).getMonth()+1}`;
+
+            // 1. 修正後的住宿日期計算 (計算前一晚是幾號)
             const previousNightHotel = computed(() => {
-                // 1. 基本檢查
+                // 安全檢查
                 if (!itinerary.value || !itinerary.value[currDayIdx.value]) return null;
                 const curDateStr = itinerary.value[currDayIdx.value].date;
                 if (!curDateStr) return null;
 
-                // 2. 穩健的日期計算 (完全避開時區問題)
-                // 假設格式是 YYYY-MM-DD (例如 2025-01-24)
                 let prevDateStr = '';
                 try {
-                    // 將字串拆解為 [年, 月, 日]
-                    const parts = curDateStr.split(/[-/]/).map(Number); // 支援 - 或 / 分隔
-                    
+                    // 解析日期 (YYYY-MM-DD)
+                    const parts = curDateStr.split(/[-/]/).map(Number);
                     if (parts.length === 3) {
-                        // 建立日期物件 (使用本地時間建構式：年, 月-1, 日)
-                        // 設定為中午 12 點避免日光節約時間干擾
+                        // 設定為中午 12 點計算，避開時區問題
                         const d = new Date(parts[0], parts[1] - 1, parts[2], 12, 0, 0);
-                        
-                        // 減去一天 (86400000 毫秒)
-                        d.setTime(d.getTime() - 86400000);
-                        
-                        // 轉回 YYYY-MM-DD 字串
+                        d.setTime(d.getTime() - 86400000); // 減一天
                         const y = d.getFullYear();
                         const m = String(d.getMonth() + 1).padStart(2, '0');
                         const dd = String(d.getDate()).padStart(2, '0');
                         prevDateStr = `${y}-${m}-${dd}`;
                     }
                 } catch (e) {
-                    console.error("日期計算錯誤", e);
                     return null;
                 }
+                
+                // console.log(`Day ${currDayIdx.value+1} 前一晚是 ${prevDateStr}`);
 
-                // 3. (Debug) 在瀏覽器 Console 顯示比對資訊，方便除錯
-                // 請按下 F12 查看 Console 分頁
-                console.log(`Day ${currDayIdx.value+1} (${curDateStr}) 的前一晚是: ${prevDateStr}`);
-
-                // 4. 比對住宿資料
+                // 比對住宿資料 (入住 <= 前一晚 < 退房)
                 return hotels.value.find(h => {
-                    // 確保該飯店有設定日期
                     if (!h.startDate || !h.endDate) return false;
-                    
-                    // 邏輯：(入住日期 <= 前一晚) 且 (退房日期 > 前一晚)
-                    const isMatch = (h.startDate <= prevDateStr && h.endDate > prevDateStr);
-                    
-                    if (isMatch) {
-                        console.log(`>> 找到住宿: ${h.name} (${h.startDate} ~ ${h.endDate})`);
-                    }
-                    return isMatch;
+                    return h.startDate <= prevDateStr && h.endDate > prevDateStr;
                 }) || null;
             });
+
+            // 2. 修正後的當日行程列表 (補回這個變數，並加上防呆)
+            const currentEvents = computed(() => {
+                if (itinerary.value && itinerary.value[currDayIdx.value]) {
+                    return itinerary.value[currDayIdx.value].events || [];
+                }
+                return [];
+            });
+            
             const openEventModal = () => { isEditing.value=false; Object.assign(eventForm, { id: Date.now(), name: '', time: '10:00', category: 'spot', ticket: '', openTime: '', note: '', transportMode: 'transport', travelTime: '' }); showEventModal.value = true; };
             const editEvent = (evt) => { isEditing.value=true; Object.assign(eventForm, evt); showEventModal.value = true; };
             const saveEvent = () => { const dayEvents = itinerary.value[currDayIdx.value].events; if(isEditing.value) { const idx = dayEvents.findIndex(e => e.id === eventForm.id); if(idx!==-1) dayEvents[idx] = {...eventForm}; } else dayEvents.push({...eventForm}); showEventModal.value = false; };
