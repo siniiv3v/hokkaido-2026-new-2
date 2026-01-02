@@ -890,6 +890,7 @@
                 }
                 showEventModal.value = true; 
             };
+            
             const saveEvent = () => { 
                 const dayEvents = itinerary.value[currDayIdx.value].events;
                 // 計算交通耗時
@@ -916,6 +917,7 @@
                 } 
                 showEventModal.value = false; 
             };
+            
             const confirmDeleteEvent = () => { if(confirm("刪除行程?")) { const evts = itinerary.value[currDayIdx.value].events; const idx = evts.findIndex(e => e.id === eventForm.id); if(idx!==-1) evts.splice(idx,1); showEventModal.value=false; }};
             const addDay = () => { const d = new Date(itinerary.value[itinerary.value.length-1].date); d.setDate(d.getDate()+1); itinerary.value.push({date:d.toISOString().split('T')[0], events:[]}); };
             const deleteDay = (idx) => { if(itinerary.value.length>1 && confirm("刪除這一天?")) itinerary.value.splice(idx,1); };
